@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Overseer – TI4 Game Flow Assistant</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <h1>The Overseer</h1>
+  <span class="sub">Twilight Imperium 4 · game flow assistant</span>
+</header>
+
+<main>
+  <!-- SETUP -->
+  <section class="panel" id="setup">
+    <h2 class="toggle" data-target="setupBody">Setup</h2>
+    <div id="setupBody" class="body">
+      <div class="row">
+        <strong>Expansions:</strong>
+        <label><input type="checkbox" id="expPok"> Prophecy of Kings</label>
+        <label><input type="checkbox" id="expTe"> Thunder’s Edge</label>
+      </div>
+      <div class="row">
+        <strong>Descriptions:</strong>
+        <label><input type="radio" name="desc" value="original"> Original</label>
+        <label><input type="radio" name="desc" value="tegonic"> Tegonic</label>
+        <label><input type="radio" name="desc" value="idiotic"> Idiotic</label>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="shortNames"> Use faction short names</label>
+      </div>
+      <div class="row col" id="legSel">
+        <strong>Legendary planets in play</strong>
+        <div id="legList" class="checks"></div>
+      </div>
+      <div class="row col">
+        <label for="tts"><strong>TTS map string</strong> (Tabletop Simulator / Milty format)</label>
+        <textarea id="tts" rows="2" placeholder="e.g. {18} 27 33 41 ..."></textarea>
+        <div id="ttsInfo" class="hint"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FACTIONS -->
+  <section class="panel" id="factions">
+    <h2 class="toggle" data-target="factionsBody">Factions <span id="factionCount" class="badge"></span></h2>
+    <div id="factionsBody" class="body">
+      <div class="row">
+        <button id="clearSel" type="button">Clear selections</button>
+      </div>
+      <div id="factionGrid" class="grid"></div>
+    </div>
+  </section>
+
+  <!-- OVERVIEW -->
+  <section class="panel" id="overview">
+    <h2 class="toggle" data-target="overviewBody">Overview</h2>
+    <div class="body" style="padding-bottom:0">
+      <div class="row">
+        <label><input type="checkbox" id="acrToggle"> Use acronyms</label>
+        <label><input type="checkbox" id="lineColor"> Colored line</label>
+        <span class="slider"><strong>Group by:</strong>
+          <label><input type="radio" name="group" value="component"> Component</label>
+          <label><input type="radio" name="group" value="faction"> Faction</label></span>
+      </div>
+      <div id="legend" class="legend" hidden></div>
+    </div>
+    <div id="overviewBody" class="body"></div>
+  </section>
+
+  <!-- TIMELINE -->
+  <section class="panel" id="timeline">
+    <h2 class="toggle" data-target="timelineBody">Round Timeline</h2>
+    <div id="timelineBody" class="body">
+      <div class="row">
+        <button id="expandAll" type="button">Expand all</button>
+        <button id="collapseAll" type="button">Collapse all</button>
+      </div>
+      <div id="timelineTree"></div>
+    </div>
+  </section>
+</main>
+
+<footer>Rules sources: Living Rules Reference 2.0 (PoK), Twilight Imperium Wiki. Unofficial fan tool.</footer>
+
+<script src="data.js"></script>
+<script src="overview-data.js"></script>
+<script src="short-texts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
