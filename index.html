@@ -89,11 +89,19 @@
 
 <footer>
   <span class="footer-note">Rules sources: Living Rules Reference 2.0 (PoK), Twilight Imperium Wiki. Unofficial fan tool.</span>
+  <button class="donate" id="donateBtn" type="button"><img src="images/trade-good.png" alt="">Pay me a trade good!</button>
   <a class="signature" href="https://github.com/DaniloTegon" target="_blank" rel="noreferrer">
     <span>Created by Danilo 'Cybeduck' Tegon</span>
     <img src="images/danilo-avatar.png" alt="Danilo 'Cybeduck' Tegon">
   </a>
 </footer>
+
+<dialog id="pixDialog" class="pix-dialog">
+  <h3>Give me a trade good!</h3>
+  <img src="images/pix.png" alt="Pix QR code">
+  <p class="hint">Scan with your bank app to pay via Pix.</p>
+  <button type="button" id="pixClose">Close</button>
+</dialog>
 
 <script src="data.js"></script>
 <script src="overview-data.js"></script>

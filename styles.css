@@ -6,6 +6,13 @@ body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 "Segoe UI",s
 .sub{color:var(--mut)}
 main{max-width:1100px;margin:0 auto;padding:16px}
 footer{max-width:1100px;margin:0 auto;padding:16px;color:var(--mut);font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.donate{margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:6px 12px;font-size:13px}
+.donate img{width:22px;height:22px;object-fit:contain}
+.donate+.signature{margin-left:0}
+.pix-dialog{background:var(--panel);color:var(--text);border:1px solid var(--acc);border-radius:8px;padding:16px;text-align:center;max-width:340px}
+.pix-dialog::backdrop{background:#000a}
+.pix-dialog h3{margin:0 0 10px;color:var(--acc)}
+.pix-dialog img{width:260px;max-width:100%;background:#fff;padding:8px;border-radius:6px}
 .signature{margin-left:auto;display:inline-flex;align-items:center;gap:10px;overflow:hidden;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--text);text-decoration:none;white-space:nowrap}
 .signature span{padding-left:12px}
 .signature img{width:40px;height:40px;object-fit:cover}
