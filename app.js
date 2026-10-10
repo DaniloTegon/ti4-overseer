@@ -5,8 +5,12 @@ const KEY = "overseer.v2";
 
 const state = Object.assign({
   pok: false, te: false, acr: false, short: false, desc: "original", line: true, group: "component", tts: "",
-  selected: [], picks: {}, colors: {}, leg: [], factionsCollapsed: false, openIds: null,
+  selected: [], picks: {}, colors: {}, leg: [], relics: [], planetOwners: {}, relicOwners: {}, assetPicker: null,
+  legCollapsed: false, relicCollapsed: false, factionsCollapsed: false, openIds: null,
 }, JSON.parse(localStorage.getItem(KEY) || "{}"));
+state.relics ||= [];
+state.planetOwners ||= {};
+state.relicOwners ||= {};
 let pickerFor = null;
 let tts = { empty: true };
 const save = () => localStorage.setItem(KEY, JSON.stringify(state));
@@ -17,13 +21,14 @@ const HOME_TILE = Object.fromEntries(FACTIONS.filter((f) => f.tile).map((f) => [
 const LEG_TILE = Object.fromEntries(LEGENDARY.filter((l) => l.tile).map((l) => [l.tile, l.id]));
 const maxPicks = () => (state.selected.length <= 4 ? 2 : 1);
 const legAvail = (l) => (l.exp === "pok" ? state.pok : state.te);
+const relicAvail = (r) => (r.exp === "pok" ? state.pok : state.te);
 
 /* ---------- acronyms ---------- */
 const wordMap = {};
 for (const [abbr, forms] of ACRONYMS) forms.forEach((w) => (wordMap[w] = abbr));
 const ACR_RE = new RegExp(
   "\\b(" + Object.keys(wordMap).sort((a, b) => b.length - a.length).join("|") + ")(s)?\\b", "gi");
-const LEG_IMG = { avernus: "Avernus", emelpar: "Emelpar", faunus: "Faunus", garbozia: "Garbozia", hopes: "HopesEnd", industrex: "Industrex", mallice: "Mallice", mirage: "Mirage", ordinian: "Ordinian", primor: "Primor", styx: "Styx", tempesta: "Tempesta", thunders: "ThundersEdge" };
+const LEG_IMG = { avernus: "Avernus", emelpar: "Emelpar", faunus: "Faunus", garbozia: "Garbozia", hopes: "HopesEnd", industrex: "Industrex", mallice: "Mallice", mecatolrex: "MecatolRex.jpg", mirage: "Mirage", ordinian: "Ordinian", primor: "Primor", styx: "Styx", tempesta: "Tempesta", thunders: "ThundersEdge" };
 const acrName = (a) => LEGEND_TEXT[a] || ACRONYMS.find((x) => x[0] === a)[1][0].replace(/^./, (c) => c.toUpperCase());
 function fmt(text) {
   return esc(text).replace(ACR_RE, (m, w, plural) => {
@@ -115,7 +120,6 @@ function applyTts() {
     if (state.selected.some((id) => byId[id].exp === "pok") || tts.leg.length) state.pok = true;
   }
   $("#factions").hidden = !!tts.active;
-  $("#legSel").hidden = !!tts.active;
 }
 
 /* ---------- setup ---------- */
@@ -131,10 +135,46 @@ function renderSetup() {
   const lg = $("#legend");
   lg.hidden = !state.acr;
   if (state.acr) lg.innerHTML = fmtLegend();
-  const opts = LEGENDARY.filter(legAvail);
+  const opts = LEGENDARY.filter((l) => legAvail(l) && (!tts.active || state.leg.includes(l.id)));
+  $("#legSel").classList.toggle("closed", state.legCollapsed);
+  $("[data-collapse='legendary']").setAttribute("aria-expanded", String(!state.legCollapsed));
   $("#legList").innerHTML = opts.length
-    ? opts.map((l) => `<label class="legtile ${state.leg.includes(l.id) ? "on" : ""}" title="${esc(l.name)}"><input type="checkbox" data-leg="${l.id}" ${state.leg.includes(l.id) ? "checked" : ""}>${LEG_IMG[l.id] ? `<img src="images/planets/${LEG_IMG[l.id]}.png" alt="${esc(l.name)}">` : `<span class="ph">Ω</span>`}<span class="ln">${esc(l.name)}</span></label>`).join("")
+    ? opts.map((l) => assetTile("planet", l, state.leg, state.planetOwners)).join("")
     : `<span class="hint">Enable an expansion to choose legendary planets.</span>`;
+  const relics = RELICS.filter(relicAvail);
+  $("#relicSel").classList.toggle("closed", state.relicCollapsed);
+  $("[data-collapse='relics']").setAttribute("aria-expanded", String(!state.relicCollapsed));
+  $("#relicList").innerHTML = relics.length
+    ? relics.map((r) => assetTile("relic", r, state.relics, state.relicOwners)).join("")
+    : `<span class="hint">Enable an expansion to choose relics.</span>`;
+}
+
+function assetTile(kind, item, selected, owners) {
+  const open = state.assetPicker === `${kind}:${item.id}`;
+  const owner = owners[item.id];
+  const faction = owner && byId[owner];
+  const label = faction ? fname(faction) : selected.includes(item.id) ? "No owner" : "Not in play";
+  const planetImage = LEG_IMG[item.id];
+  const image = kind === "planet" && planetImage
+    ? item.id === "mecatolrex"
+      ? `<span class="planet-photo mecatolrex"><img src="images/planets/${planetImage}" alt=""></span>`
+      : `<img class="planet-img ${item.id}" src="images/planets/${planetImage.endsWith(".jpg") ? planetImage : `${planetImage}.png`}" alt="">`
+    : kind === "relic"
+      ? `<img class="relic-icon" src="images/relic-icon.png" alt="Relic">`
+      : `<span class="ph">Ω</span>`;
+  return `<div class="asset-wrap"><button type="button" class="legtile asset-tile ${selected.includes(item.id) ? "on" : ""} ${open ? "open" : ""}" data-asset="${kind}:${item.id}" title="${esc(item.name)}">${image}<span class="ln">${esc(item.name)}</span><span class="asset-owner"${faction && colorHex(owner) ? ` style="color:${colorHex(owner)}"` : ""}>${esc(label)}</span></button>${open ? assetOwnerPicker(kind, item) : ""}</div>`;
+}
+
+function assetOwnerPicker(kind, item) {
+  const key = kind === "planet" ? "planetOwners" : "relicOwners";
+  const selected = kind === "planet" ? state.leg : state.relics;
+  const owners = state[key];
+  const hasOwner = !!owners[item.id];
+  const choices = orderedSelected(true).map((id) => {
+    const color = colorHex(id) || "#8a90a2";
+    return `<button type="button" class="owner-choice" data-kind="${kind}" data-item="${item.id}" data-owner="${id}"><i style="background:${color}"></i>${esc(fname(byId[id]))}</button>`;
+  }).join("");
+  return `<div class="asset-picker"><div class="asset-picker-title">Owner</div>${choices || `<span class="hint">Select a faction first.</span>`}<button type="button" class="owner-choice" data-kind="${kind}" data-item="${item.id}" data-owner="">No owner</button>${selected.includes(item.id) && !(kind === "planet" && tts.active) ? `<button type="button" class="owner-choice remove" data-kind="${kind}" data-item="${item.id}" data-action="remove">Remove from game</button>` : ""}${hasOwner ? `<span class="hint">Choosing a faction keeps this item in play.</span>` : ""}</div>`;
 }
 
 /* ---------- factions ---------- */
@@ -181,8 +221,8 @@ function renderOverview() {
     return `<div class="chipwrap"><div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${hex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
   }).join("") + `</div><div class="ov">`;
 
-  const leg = LEGENDARY.filter((l) => state.leg.includes(l.id) && legAvail(l));
-  if (leg.length) h += `<h3>${fmt("Legendary Planets")}</h3><ul>${leg.map((l) => `<li><span class="fname">${esc(l.name)}</span>: ${fmt(txt({ ...l, i: IDIOTIC_PLANETS[l.id] }))}</li>`).join("")}</ul>`;
+  h += renderOwnedAssets("planet", LEGENDARY, state.leg, state.planetOwners, "Legendary Planets");
+  h += renderOwnedAssets("relic", RELICS, state.relics, state.relicOwners, "Relics");
 
   let lastGroup = null;
   if (state.group === "faction") {
@@ -216,6 +256,14 @@ function renderOverview() {
   const missing = order.filter((id) => !OVERVIEW[id]);
   if (missing.length) h += `<p class="empty">Details not yet available for: ${missing.map((id) => esc(fname(byId[id]))).join(", ")}.</p>`;
   $("#overviewBody").innerHTML = h + `</div>`;
+}
+
+function renderOwnedAssets(kind, items, selected, owners, heading) {
+  const owned = orderedSelected(true).flatMap((owner) =>
+    items.filter((item) => selected.includes(item.id) && (owners[item.id] === owner) && (kind === "planet" ? legAvail(item) : relicAvail(item)))
+      .map((item) => `${item.name}: ${(kind === "planet" ? txt({ ...item, i: IDIOTIC_PLANETS[item.id] }) : txt({ ...item, i: IDIOTIC_RELICS[item.id] })).replace(/[.!?]+$/, "")}`)
+      .map((text) => groupLine(owner, [text])));
+  return owned.length ? `<h3>${fmt(heading)}</h3><ul>${owned.join("")}</ul>` : "";
 }
 function picker(id, max) {
   const mine = state.picks[id] || [];
@@ -271,6 +319,9 @@ function dropUnavailable() {
   const ids = new Set(available().map((f) => f.id));
   state.selected = state.selected.filter((id) => ids.has(id));
   state.leg = state.leg.filter((id) => legAvail(LEGENDARY.find((l) => l.id === id)));
+  state.relics = state.relics.filter((id) => relicAvail(RELICS.find((r) => r.id === id)));
+  for (const id of Object.keys(state.planetOwners)) if (!LEGENDARY.some((l) => l.id === id && legAvail(l))) delete state.planetOwners[id];
+  for (const id of Object.keys(state.relicOwners)) if (!RELICS.some((r) => r.id === id && relicAvail(r))) delete state.relicOwners[id];
 }
 $("#expPok").addEventListener("change", (e) => { state.pok = e.target.checked; dropUnavailable(); renderAll(); });
 $("#expTe").addEventListener("change", (e) => { state.te = e.target.checked; dropUnavailable(); renderAll(); });
@@ -283,10 +334,40 @@ document.querySelectorAll('input[name="desc"]').forEach((r) =>
   r.addEventListener("change", (e) => { state.desc = e.target.value; renderAll(); }));
 $("#tts").addEventListener("change", (e) => { state.tts = e.target.value; renderAll(); });
 $("#tts").addEventListener("input", (e) => { state.tts = e.target.value; if (parseTts().ok || !state.tts.trim()) renderAll(); else applyTts(); });
-$("#legList").addEventListener("change", (e) => {
-  const id = e.target.dataset.leg;
-  if (!id) return;
-  state.leg = e.target.checked ? [...state.leg, id] : state.leg.filter((x) => x !== id);
+$("#setupBody").addEventListener("click", (e) => {
+  const toggle = e.target.closest("[data-collapse]");
+  if (toggle) {
+    const isPlanetSection = toggle.dataset.collapse === "legendary";
+    const key = isPlanetSection ? "legCollapsed" : "relicCollapsed";
+    state[key] = !state[key];
+    const section = isPlanetSection ? $("#legSel") : $("#relicSel");
+    section.classList.toggle("closed", state[key]);
+    toggle.setAttribute("aria-expanded", String(!state[key]));
+    save();
+    return;
+  }
+  const tile = e.target.closest("[data-asset]");
+  if (tile) {
+    state.assetPicker = state.assetPicker === tile.dataset.asset ? null : tile.dataset.asset;
+    renderAll();
+    return;
+  }
+  const choice = e.target.closest(".owner-choice");
+  if (!choice) return;
+  const { kind, item, owner, action } = choice.dataset;
+  const isPlanet = kind === "planet";
+  const selected = isPlanet ? state.leg : state.relics;
+  const owners = isPlanet ? state.planetOwners : state.relicOwners;
+  if (action === "remove") {
+    if (isPlanet) state.leg = selected.filter((id) => id !== item);
+    else state.relics = selected.filter((id) => id !== item);
+    delete owners[item];
+  } else {
+    if (!selected.includes(item)) selected.push(item);
+    if (owner) owners[item] = owner;
+    else delete owners[item];
+  }
+  state.assetPicker = null;
   renderAll();
 });
 $("#clearSel").addEventListener("click", () => {

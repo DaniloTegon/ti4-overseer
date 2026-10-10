@@ -31,9 +31,13 @@
       <div class="row">
         <label><input type="checkbox" id="shortNames"> Use faction short names</label>
       </div>
-      <div class="row col" id="legSel">
-        <strong>Legendary planets in play</strong>
-        <div id="legList" class="checks"></div>
+      <div class="row col collapsible-section" id="legSel">
+        <button class="subsection-toggle" type="button" data-collapse="legendary" aria-expanded="true" aria-controls="legList"><strong>Legendary planets</strong></button>
+        <div id="legList" class="checks section-content"></div>
+      </div>
+      <div class="row col collapsible-section" id="relicSel">
+        <button class="subsection-toggle" type="button" data-collapse="relics" aria-expanded="true" aria-controls="relicList"><strong>Relics</strong></button>
+        <div id="relicList" class="checks section-content"></div>
       </div>
       <div class="row col">
         <label for="tts"><strong>TTS map string</strong> (Tabletop Simulator / Milty format)</label>
@@ -83,7 +87,13 @@
   </section>
 </main>
 
-<footer>Rules sources: Living Rules Reference 2.0 (PoK), Twilight Imperium Wiki. Unofficial fan tool.</footer>
+<footer>
+  <span class="footer-note">Rules sources: Living Rules Reference 2.0 (PoK), Twilight Imperium Wiki. Unofficial fan tool.</span>
+  <a class="signature" href="https://github.com/DaniloTegon" target="_blank" rel="noreferrer">
+    <span>Created by Danilo 'Cybeduck' Tegon</span>
+    <img src="images/danilo-avatar.png" alt="Danilo 'Cybeduck' Tegon">
+  </a>
+</footer>
 
 <script src="data.js"></script>
 <script src="overview-data.js"></script>
