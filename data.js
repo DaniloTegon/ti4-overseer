@@ -24,7 +24,7 @@ const STRATEGY_CARDS = [
 const PLAYER_COLORS = [
   { id: "green", name: "Green", hex: "#3fb55a" }, { id: "blue", name: "Blue", hex: "#4f8cff" },
   { id: "yellow", name: "Yellow", hex: "#f2d544" }, { id: "red", name: "Red", hex: "#ee5a5a" },
-  { id: "purple", name: "Purple", hex: "#b26cf0" }, { id: "black", name: "Black", hex: "#8b8f99" },
+  { id: "purple", name: "Purple", hex: "#b26cf0" }, { id: "black", name: "Black", hex: "#8b8f99", textHex: "#d5d8df" },
   { id: "pink", name: "Pink", hex: "#f58cc0" }, { id: "orange", name: "Orange", hex: "#fb923c" },
 ];
 
@@ -141,15 +141,15 @@ const RELICS = [
 const IDIOTIC_RELICS = Object.fromEntries(RELICS.map((r) => [r.id, ""]));
 
 const OVERVIEW_SECTIONS = [
-  { key: "general", title: "General Effects" },
-  { key: "prm", title: "Promissory Notes" },
-  { key: "tech", title: "Racial Technologies" },
-  { key: "brt", title: "Breakthroughs", v: ["te"] },
-  { key: "fs", title: "Flagships" },
-  { key: "agt", title: "Agents", group: "Leaders & Mechs", v: ["pok", "te"] },
-  { key: "com", title: "Commanders", group: "Leaders & Mechs", v: ["pok", "te"] },
-  { key: "hr", title: "Heroes", group: "Leaders & Mechs", v: ["pok", "te"] },
-  { key: "mc", title: "Mechs", group: "Leaders & Mechs", v: ["pok", "te"] },
+  { key: "general", title: "General Effects", source: "FA" },
+  { key: "prm", title: "Promissory Notes", source: "PRM" },
+  { key: "tech", title: "Racial Technologies", source: "TECH" },
+  { key: "brt", title: "Breakthroughs", source: "BRT", v: ["te"] },
+  { key: "fs", title: "Flagships", source: "FS" },
+  { key: "agt", title: "Agents", source: "AGT", group: "Leaders & Mechs", v: ["pok", "te"] },
+  { key: "com", title: "Commanders", source: "COM", group: "Leaders & Mechs", v: ["pok", "te"] },
+  { key: "hr", title: "Heroes", source: "HR", group: "Leaders & Mechs", v: ["pok", "te"] },
+  { key: "mc", title: "Mechs", source: "MC", group: "Leaders & Mechs", v: ["pok", "te"] },
 ];
 
 // Overview items live in OVERVIEW (wiki texts, overview-data.js) and SHORT (Tegonic Descriptions, short-texts.js).

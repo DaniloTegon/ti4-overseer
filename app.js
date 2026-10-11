@@ -12,6 +12,11 @@ state.relics ||= [];
 state.planetOwners ||= {};
 state.relicOwners ||= {};
 state.hiddenFactions ||= [];
+if (!state.mirageAutoSelectionFixed) {
+  if (!state.planetOwners.mirage) state.leg = state.leg.filter((id) => id !== "mirage");
+  if (!state.relicOwners.dominusorb) state.relics = state.relics.filter((id) => id !== "dominusorb");
+  state.mirageAutoSelectionFixed = true;
+}
 let pickerFor = null;
 let tts = { empty: true };
 const save = () => localStorage.setItem(KEY, JSON.stringify(state));
@@ -46,7 +51,11 @@ const fmtLegend = () => ACRONYMS.map(([a, forms]) => {
 /* ---------- faction helpers ---------- */
 const fname = (f) => (state.short ? f.short : f.full);
 const colorHex = (id) => (PLAYER_COLORS.find((c) => c.id === state.colors[id]) || {}).hex;
-const nameHtml = (id) => `<span class="fname" style="color:${colorHex(id) || "#9fc3ff"}">${esc(fname(byId[id]))}</span>`;
+const colorTextHex = (id) => {
+  const color = PLAYER_COLORS.find((c) => c.id === state.colors[id]);
+  return color && (color.textHex || color.hex);
+};
+const nameHtml = (id) => `<span class="fname" style="color:${colorTextHex(id) || "#9fc3ff"}">${esc(fname(byId[id]))}</span>`;
 function initiativeKey(id) {
   const d = FACTION_DATA[id];
   if (d && d.initiative !== undefined) return d.initiative;
@@ -144,7 +153,7 @@ function renderSetup() {
   const lg = $("#legend");
   lg.hidden = !state.acr;
   if (state.acr) lg.innerHTML = fmtLegend();
-  const opts = LEGENDARY.filter((l) => legAvail(l) && (!tts.active || state.leg.includes(l.id)));
+  const opts = LEGENDARY.filter((l) => legAvail(l) && (!tts.active || state.leg.includes(l.id) || (l.id === "mirage" && state.pok) || (l.id === "thunders" && state.te)));
   $("#legSel").classList.toggle("closed", state.legCollapsed);
   $("[data-collapse='legendary']").setAttribute("aria-expanded", String(!state.legCollapsed));
   $("#legList").innerHTML = opts.length
@@ -171,7 +180,7 @@ function assetTile(kind, item, selected, owners) {
     : kind === "relic"
       ? `<img class="relic-icon" src="images/relic-icon.png" alt="Relic">`
       : `<span class="ph">Ω</span>`;
-  return `<div class="asset-wrap"><button type="button" class="legtile asset-tile ${selected.includes(item.id) ? "on" : ""} ${open ? "open" : ""}" data-asset="${kind}:${item.id}" title="${esc(item.name)}">${image}<span class="ln">${esc(item.name)}</span><span class="asset-owner"${faction && colorHex(owner) ? ` style="color:${colorHex(owner)}"` : ""}>${esc(label)}</span></button>${open ? assetOwnerPicker(kind, item) : ""}</div>`;
+  return `<div class="asset-wrap"><button type="button" class="legtile asset-tile ${selected.includes(item.id) ? "on" : ""} ${open ? "open" : ""}" data-asset="${kind}:${item.id}" title="${esc(item.name)}">${image}<span class="ln">${esc(item.name)}</span><span class="asset-owner"${faction && colorTextHex(owner) ? ` style="color:${colorTextHex(owner)}"` : ""}>${esc(label)}</span></button>${open ? assetOwnerPicker(kind, item) : ""}</div>`;
 }
 
 function assetOwnerPicker(kind, item) {
@@ -224,10 +233,10 @@ function overviewItems(id, key) {
     return { f: i.f + om, x: x + om, i: id2[n] === undefined ? undefined : id2[n] && id2[n] + om, v: i.v };
   });
 }
-function groupLine(id, items) {
+function groupLine(id, items, source) {
   const body = items.map((item) => typeof item === "string" ? fmt(item) : `${fmt(item.text)}${expansionIcon(item.version, id)}`).join(" / ");
-  const hex = state.line ? colorHex(id) : undefined;
-  return `<li${hex ? ` style="color:${hex}"` : ""}>${nameHtml(id)}: ${body.replace(/[\s/]/g, "") ? body + "." : ""}</li>`;
+  const hex = state.line ? colorTextHex(id) : undefined;
+  return `<li${hex ? ` style="color:${hex}"` : ""}>${nameHtml(id)}${source ? ` <span class="source-tag">[${source}]</span>` : ""}: ${body.replace(/[\s/]/g, "") ? body + "." : ""}</li>`;
 }
 function renderOverview() {
   const order = visibleSelected();
@@ -240,9 +249,10 @@ function renderOverview() {
     const p = (state.picks[id] || []).slice().sort((a, b) => a - b);
     const ini = FACTION_DATA[id] && FACTION_DATA[id].initiative === 0 ? `<span class="sc">0</span>` : "";
     const hex = colorHex(id);
+    const textHex = colorTextHex(id);
     const visible = !state.hiddenFactions.includes(id);
     const toggle = `<input class="fvisibility" type="checkbox" data-fvisibility="${id}" ${visible ? "checked" : ""} aria-label="Show ${esc(f.full)} in overview and timeline" title="Show in overview and timeline">`;
-    return `<div class="chipwrap ${visible ? "" : "hidden-faction"}">${toggle}<div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${hex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
+    return `<div class="chipwrap ${visible ? "" : "hidden-faction"}">${toggle}<div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${textHex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
   }).join("") + `</div><div class="ov">`;
 
   h += renderOwnedAssets("planet", LEGENDARY, state.leg, state.planetOwners, "Legendary Planets");
@@ -256,8 +266,8 @@ function renderOverview() {
       for (const s of OVERVIEW_SECTIONS) {
         if (s.v && !s.v.includes(level())) continue;
         const items = overviewItems(id, s.key);
-        const body = items.map((item) => overviewText(item, id)).join(" / ");
-        if (items.length) lines.push(`<li${hex ? ` style="color:${hex}"` : ""}><b>${fmt(s.title)}</b>: ${body.replace(/[\s/]/g, "") ? body + "." : ""}</li>`);
+        const rows = items.map((item) => ({ text: txt(item), version: item.v }));
+        if (items.length) lines.push(groupLine(id, rows, s.source));
       }
       if (lines.length) h += `<h3>${nameHtml(id)}</h3><ul>${lines.join("")}</ul>`;
     }
@@ -267,7 +277,7 @@ function renderOverview() {
     const lines = [];
     for (const id of order) {
       const items = overviewItems(id, s.key).map((item) => ({ text: txt(item), version: item.v }));
-      if (items.length) lines.push(groupLine(id, items));
+      if (items.length) lines.push(groupLine(id, items, s.source));
     }
     if (!lines.length) continue;
     if (s.group && s.group !== lastGroup) h += `<h3>${fmt(s.group)}</h3>`;
@@ -329,7 +339,6 @@ function renderTimeline() {
 function renderAll() {
   applyTts();
   fixPicks();
-  if (state.pok && !state.leg.includes("mirage")) state.leg.push("mirage");
   renderSetup(); renderFactions(); renderOverview(); renderTimeline();
   save();
 }
@@ -396,7 +405,12 @@ $("#setupBody").addEventListener("click", (e) => {
   renderAll();
 });
 $("#clearSel").addEventListener("click", () => {
-  state.selected = []; state.picks = {}; state.colors = {}; state.hiddenFactions = []; pickerFor = null; state.factionsCollapsed = false; renderAll();
+  state.selected = []; state.picks = {}; state.colors = {}; state.hiddenFactions = []; state.leg = []; state.relics = []; state.planetOwners = {}; state.relicOwners = {}; pickerFor = null; state.factionsCollapsed = false; renderAll();
+});
+$("#clearStrategyCards").addEventListener("click", () => {
+  state.picks = {};
+  pickerFor = null;
+  renderAll();
 });
 $("#factionGrid").addEventListener("click", (e) => {
   const c = e.target.closest(".fcard");
