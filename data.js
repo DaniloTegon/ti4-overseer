@@ -29,13 +29,12 @@ const PLAYER_COLORS = [
 ];
 
 // img = portrait file on ti4-cheatsheets.vercel.app; tile = home system tile number in TTS map strings;
-// fx/fy = face centre inside the portrait (0-1), used to centre the crop.
 const FACTIONS = [
   { id: "arborec", full: "Arborec", short: "Arborec", exp: "base", img: "arborec", tile: 5 },
   { id: "argent", full: "Argent Flight", short: "Argent", exp: "pok", img: "argent", tile: 58 },
-  { id: "bastion", full: "Last Bastion", short: "Bastion", exp: "te", img: "lastbastion", tile: 92, lx: 0.62, ly: 0.15 },
+  { id: "bastion", full: "Last Bastion", short: "Bastion", exp: "te", img: "lastbastion", tile: 92 },
   { id: "creuss", full: "Ghosts of Creuss", short: "Creuss", exp: "base", img: "creuss", tile: 51 },
-  { id: "crimson", full: "Crimson Rebellion", short: "Crimson", exp: "te", img: "crimsonrebellion", tile: 94, lx: 0.6, ly: 0.15 },
+  { id: "crimson", full: "Crimson Rebellion", short: "Crimson", exp: "te", img: "crimsonrebellion", tile: 94 },
   { id: "deepwrought", full: "Deepwrought Scholarate", short: "Deepwrought", exp: "te", img: "deepwrought", tile: 95 },
   { id: "empyrean", full: "Empyrean", short: "Empyrean", exp: "pok", img: "empyrean", tile: 56 },
   { id: "firmament", full: "The Firmament", short: "Firmament", exp: "te", img: "firmament", tile: 96 },
@@ -47,12 +46,12 @@ const FACTIONS = [
   { id: "mahact", full: "Mahact Gene-Sorcerers", short: "Mahact", exp: "pok", img: "mahactgene", tile: 52 },
   { id: "mentak", full: "Mentak Coalition", short: "Mentak", exp: "base", img: "mentak", tile: 2 },
   { id: "muaat", full: "Embers of Muaat", short: "Muaat", exp: "base", img: "muaat", tile: 4 },
-  { id: "naalu", full: "Naalu Collective", short: "Naalu", exp: "base", img: "naalu", tile: 9, fy: 0.4 },
+  { id: "naalu", full: "Naalu Collective", short: "Naalu", exp: "base", img: "naalu", tile: 9 },
   { id: "naazrokha", full: "Naaz-Rokha Alliance", short: "Naaz-Rokha", exp: "pok", img: "naazrokha", tile: 57 },
   { id: "nekro", full: "Nekro Virus", short: "Nekro", exp: "base", img: "nekro", tile: 8 },
   { id: "nomad", full: "Nomad", short: "Nomad", exp: "pok", img: "nomad", tile: 53 },
   { id: "ralnel", full: "Ral Nel Consortium", short: "Ral Nel", exp: "te", img: "ralnel", tile: 93 },
-  { id: "saar", full: "Clan of Saar", short: "Saar", exp: "base", img: "saar", tile: 11, fy: 0.42 },
+  { id: "saar", full: "Clan of Saar", short: "Saar", exp: "base", img: "saar", tile: 11 },
   { id: "sardakk", full: "Sardakk N’orr", short: "Sardakk", exp: "base", img: "sardakk", tile: 13 },
   { id: "sol", full: "Federation of Sol", short: "Sol", exp: "base", img: "sol", tile: 1 },
   { id: "titans", full: "Titans of Ul", short: "Titans", exp: "pok", img: "titans", tile: 55 },

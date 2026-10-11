@@ -6,11 +6,12 @@ const KEY = "overseer.v2";
 const state = Object.assign({
   pok: false, te: false, acr: false, short: false, desc: "original", line: true, group: "component", tts: "",
   selected: [], picks: {}, colors: {}, leg: [], relics: [], planetOwners: {}, relicOwners: {}, assetPicker: null,
-  legCollapsed: false, relicCollapsed: false, factionsCollapsed: false, openIds: null,
+  hiddenFactions: [], legCollapsed: false, relicCollapsed: false, factionsCollapsed: false, openIds: null,
 }, JSON.parse(localStorage.getItem(KEY) || "{}"));
 state.relics ||= [];
 state.planetOwners ||= {};
 state.relicOwners ||= {};
+state.hiddenFactions ||= [];
 let pickerFor = null;
 let tts = { empty: true };
 const save = () => localStorage.setItem(KEY, JSON.stringify(state));
@@ -60,18 +61,18 @@ function orderedSelected(all) {
     .sort((a, b) => a.k - b.k || a.i - b.i)
     .map((o) => o.id);
 }
+function visibleSelected(all) {
+  return orderedSelected(all).filter((id) => !state.hiddenFactions.includes(id));
+}
 function available() {
   return FACTIONS.filter((f) => f.exp === "base" || (f.exp === "pok" && (state.pok || (f.id === "keleres" && state.te))) || (f.exp === "te" && state.te));
 }
-// Portrait art is off-centre; zoom in and shift so the face sits in the middle of the circle.
-// A local images/<id>.png (user-supplied) is tried before the remote portrait.
+// A local images/<id>.png is tried before the remote portrait.
 function fimg(f) {
-  const fx = f.fx ?? 0.5, fy = f.fy ?? 0.38;
   const remote = `https://ti4-cheatsheets.vercel.app/factions/portraits/${f.img}.png`;
-  const S = 1.7;
-  const st = `width:${S * 100}%;height:${S * 100}%;left:${(0.5 - fx * S) * 100}%;top:${(0.5 - fy * S) * 100}%`;
+  const st = "width:100%;height:100%;left:0;top:0;object-fit:contain";
   const local = `images/${f.id}.png`;
-  const lst = `width:100%;height:100%;left:0;top:0;object-fit:cover;object-position:${(f.lx ?? 0.5) * 100}% ${(f.ly ?? 0.2) * 100}%`;
+  const lst = "width:100%;height:100%;left:0;top:0;object-fit:contain;object-position:center";
   return `<div class="fimg">${esc(f.short[0])}<img src="${local}" style="${lst}" data-r="${remote}" data-s="${st}" alt="" onerror="if(this.dataset.r){this.style.cssText=this.dataset.s;this.src=this.dataset.r;delete this.dataset.r}else this.remove()"></div>`;
 }
 function fixPicks() {
@@ -81,6 +82,7 @@ function fixPicks() {
     else state.picks[id] = state.picks[id].slice(0, max);
   }
   for (const id of Object.keys(state.colors)) if (!state.selected.includes(id)) delete state.colors[id];
+  state.hiddenFactions = state.hiddenFactions.filter((id) => state.selected.includes(id));
 }
 
 /* ---------- TTS map string ---------- */
@@ -198,6 +200,18 @@ function renderFactions() {
 
 /* ---------- overview ---------- */
 const txt = (i) => (state.desc === "original" ? i.f || i.x : state.desc === "idiotic" ? i.i ?? i.x : i.x);
+function expansionIcon(version, factionId) {
+  const versions = [].concat(version || []);
+  let expansion = null;
+  if (factionId === "keleres") {
+    if (versions.length === 1 && versions[0] === "te") expansion = "te";
+  } else if (versions.includes("pok")) expansion = "pok";
+  else if (versions.includes("te")) expansion = "te";
+  if (!expansion) return "";
+  const label = expansion === "te" ? "Thunder's Edge" : "Prophecy of Kings";
+  return `<img class="exp-icon" src="images/${expansion}-icon.png" alt="${label}" title="${label}">`;
+}
+const overviewText = (item, id) => `${fmt(txt(item))}${expansionIcon(item.v, id)}`;
 function overviewItems(id, key) {
   const sh = SHORT[id] || {}, id2 = (typeof IDIOTIC !== "undefined" && IDIOTIC[id]) || {};
   const all = (OVERVIEW[id] || {})[key] || [];
@@ -207,25 +221,28 @@ function overviewItems(id, key) {
     const teOnly = [].concat(i.v || []).join() === "te";
     const om = teOnly && hasPok ? " Ω" : "";
     const x = (teOnly && sh[`${n}@te`]) || sh[n] || i.f;
-    return { f: i.f + om, x: x + om, i: id2[n] === undefined ? undefined : id2[n] && id2[n] + om };
+    return { f: i.f + om, x: x + om, i: id2[n] === undefined ? undefined : id2[n] && id2[n] + om, v: i.v };
   });
 }
 function groupLine(id, items) {
-  const body = items.map((x) => fmt(x)).join(" / ");
+  const body = items.map((item) => typeof item === "string" ? fmt(item) : `${fmt(item.text)}${expansionIcon(item.version, id)}`).join(" / ");
   const hex = state.line ? colorHex(id) : undefined;
   return `<li${hex ? ` style="color:${hex}"` : ""}>${nameHtml(id)}: ${body.replace(/[\s/]/g, "") ? body + "." : ""}</li>`;
 }
 function renderOverview() {
-  const order = orderedSelected();
+  const order = visibleSelected();
   const max = maxPicks();
   let h = "";
   if (!state.selected.length) h += `<p class="empty">Select factions (or paste a TTS map string) to see their abilities.</p>`;
+  else if (!visibleSelected(true).length) h += `<p class="empty">Faction information is hidden. Enable it from the faction list.</p>`;
   h += `<div class="chips">` + orderedSelected(true).map((id) => {
     const f = byId[id];
     const p = (state.picks[id] || []).slice().sort((a, b) => a - b);
     const ini = FACTION_DATA[id] && FACTION_DATA[id].initiative === 0 ? `<span class="sc">0</span>` : "";
     const hex = colorHex(id);
-    return `<div class="chipwrap"><div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${hex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
+    const visible = !state.hiddenFactions.includes(id);
+    const toggle = `<input class="fvisibility" type="checkbox" data-fvisibility="${id}" ${visible ? "checked" : ""} aria-label="Show ${esc(f.full)} in overview and timeline" title="Show in overview and timeline">`;
+    return `<div class="chipwrap ${visible ? "" : "hidden-faction"}">${toggle}<div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${hex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
   }).join("") + `</div><div class="ov">`;
 
   h += renderOwnedAssets("planet", LEGENDARY, state.leg, state.planetOwners, "Legendary Planets");
@@ -238,8 +255,8 @@ function renderOverview() {
       const lines = [];
       for (const s of OVERVIEW_SECTIONS) {
         if (s.v && !s.v.includes(level())) continue;
-        const items = overviewItems(id, s.key).map(txt);
-        const body = items.map((x) => fmt(x)).join(" / ");
+        const items = overviewItems(id, s.key);
+        const body = items.map((item) => overviewText(item, id)).join(" / ");
         if (items.length) lines.push(`<li${hex ? ` style="color:${hex}"` : ""}><b>${fmt(s.title)}</b>: ${body.replace(/[\s/]/g, "") ? body + "." : ""}</li>`);
       }
       if (lines.length) h += `<h3>${nameHtml(id)}</h3><ul>${lines.join("")}</ul>`;
@@ -249,7 +266,7 @@ function renderOverview() {
     if (s.v && !s.v.includes(level())) continue;
     const lines = [];
     for (const id of order) {
-      const items = overviewItems(id, s.key).map(txt);
+      const items = overviewItems(id, s.key).map((item) => ({ text: txt(item), version: item.v }));
       if (items.length) lines.push(groupLine(id, items));
     }
     if (!lines.length) continue;
@@ -258,7 +275,7 @@ function renderOverview() {
     h += s.group ? `<h4>${fmt(s.title)}</h4>` : `<h3>${fmt(s.title)}</h3>`;
     h += `<ul>${lines.join("")}</ul>`;
   }
-  const pending = state.selected.filter((id) => !ready(id));
+  const pending = state.selected.filter((id) => !state.hiddenFactions.includes(id) && !ready(id));
   if (pending.length) h += `<p class="empty">Pick a color and at least 1 strategy card to reveal: ${pending.map((id) => esc(fname(byId[id]))).join(", ")}.</p>`;
   const missing = order.filter((id) => !OVERVIEW[id]);
   if (missing.length) h += `<p class="empty">Details not yet available for: ${missing.map((id) => esc(fname(byId[id]))).join(", ")}.</p>`;
@@ -266,10 +283,10 @@ function renderOverview() {
 }
 
 function renderOwnedAssets(kind, items, selected, owners, heading) {
-  const owned = orderedSelected(true).flatMap((owner) =>
+  const owned = visibleSelected(true).flatMap((owner) =>
     items.filter((item) => selected.includes(item.id) && (owners[item.id] === owner) && (kind === "planet" ? legAvail(item) : relicAvail(item)))
-      .map((item) => `${item.name}: ${(kind === "planet" ? txt({ ...item, i: IDIOTIC_PLANETS[item.id] }) : txt({ ...item, i: IDIOTIC_RELICS[item.id] })).replace(/[.!?]+$/, "")}`)
-      .map((text) => groupLine(owner, [text])));
+      .map((item) => ({ text: `${item.name}: ${(kind === "planet" ? txt({ ...item, i: IDIOTIC_PLANETS[item.id] }) : txt({ ...item, i: IDIOTIC_RELICS[item.id] })).replace(/[.!?]+$/, "")}`, version: item.exp }))
+      .map((item) => groupLine(owner, [item])));
   return owned.length ? `<h3>${fmt(heading)}</h3><ul>${owned.join("")}</ul>` : "";
 }
 function picker(id, max) {
@@ -295,7 +312,7 @@ function renderNode(n, depth, path, order) {
   const lines = [];
   for (const id of order) {
     const d = FACTION_DATA[id];
-    const items = d && n.slot ? (d.timeline[n.slot] || []).filter(vis).map((i) => i.x) : [];
+    const items = d && n.slot ? (d.timeline[n.slot] || []).filter(vis).map((i) => ({ text: i.x, version: i.v })) : [];
     if (items.length) lines.push(groupLine(id, items));
   }
   const kids = (n.c || []).map((c, i) => renderNode(c, depth + 1, `${path}.${i}`, order)).join("");
@@ -306,7 +323,7 @@ function renderNode(n, depth, path, order) {
 function renderTimeline() {
   allIds = [];
   if (!state.openIds) state.openIds = TIMELINE.map((_, i) => String(i));
-  $("#timelineTree").innerHTML = TIMELINE.map((n, i) => renderNode(n, 0, String(i), orderedSelected())).join("");
+  $("#timelineTree").innerHTML = TIMELINE.map((n, i) => renderNode(n, 0, String(i), visibleSelected())).join("");
 }
 
 function renderAll() {
@@ -379,7 +396,7 @@ $("#setupBody").addEventListener("click", (e) => {
   renderAll();
 });
 $("#clearSel").addEventListener("click", () => {
-  state.selected = []; state.picks = {}; state.colors = {}; pickerFor = null; state.factionsCollapsed = false; renderAll();
+  state.selected = []; state.picks = {}; state.colors = {}; state.hiddenFactions = []; pickerFor = null; state.factionsCollapsed = false; renderAll();
 });
 $("#factionGrid").addEventListener("click", (e) => {
   const c = e.target.closest(".fcard");
@@ -394,6 +411,15 @@ $("#factionGrid").addEventListener("click", (e) => {
   renderAll();
 });
 $("#overviewBody").addEventListener("click", (e) => {
+  const visibility = e.target.closest(".fvisibility");
+  if (visibility) {
+    const id = visibility.dataset.fvisibility;
+    state.hiddenFactions = visibility.checked
+      ? state.hiddenFactions.filter((factionId) => factionId !== id)
+      : [...state.hiddenFactions, id];
+    renderAll();
+    return;
+  }
   const sw = e.target.closest(".sw");
   if (sw) {
     if (sw.classList.contains("taken")) return;
