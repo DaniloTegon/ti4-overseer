@@ -2726,6 +2726,45 @@ const OVERVIEW = {
                            }
                        ]
             },
+    "keleres":  {
+                  "general":  [
+                                  {"f":"THE TRIBUNII: During setup, choose an unused faction from Mentak, Xxcha, or the Argent Flight; use that faction's home system, command tokens, and control tokens.","v":"pok","n":"The Tribunii"},
+                                  {"f":"THE TRIBUNII: During setup, choose a Keleres hero that corresponds to an unused faction; use that faction's home system, command tokens, and control tokens. Do not use the other Keleres heroes.","v":"te","n":"The Tribunii"},
+                                  {"f":"COUNCIL PATRONAGE: At the start of the strategy phase, replenish your commodities, then gain 1 trade good.","v":["pok","te"],"n":"Council Patronage"},
+                                  {"f":"LAW'S ORDER: At the start of your turn, you may spend 1 influence to treat all laws as blank until the end of your turn.","v":"pok","n":"Law's Order"},
+                                  {"f":"LAW'S ORDER: At the start of any player's turn, you may spend 1 trade good or 1 commodity to treat all laws as blank until the end of that turn.","v":"te","n":"Law's Order"}
+                              ],
+                  "prm":  [
+                              {"f":"Keleres Rider: After an agenda is revealed, you cannot vote on it. Predict aloud an outcome; if correct, draw 1 action card and gain 2 trade goods. Then, return this card to the Keleres player.","v":["pok","te"],"n":"Keleres Rider"}
+                          ],
+                  "tech":  [
+                               {"f":"I.I.H.Q. Modernization: You are neighbors with all players that have units or control planets in or adjacent to the Mecatol Rex system. Gain the Custodia Vigilia planet card and its legendary planet ability card. You cannot lose these cards, and this card cannot have an X or Y Assimilator token placed on it.","v":"pok","n":"I.I.H.Q. Modernization"},
+                               {"f":"Agency Supply Network: Whenever you resolve one of your PRODUCTION abilities, you may resolve an additional one of your PRODUCTION abilities in any system; the additional use does not trigger this ability.","v":"pok","n":"Agency Supply Network"},
+                               {"f":"Executive Order: ACTION: Exhaust this card and draw the top or bottom card of the agenda deck. Players immediately vote on this agenda as if you were the speaker; you can spend trade goods and resources on this agenda as if they were votes.","v":"te","n":"Executive Order"},
+                               {"f":"Agency Supply Network: Once per action, when you resolve a unit's PRODUCTION ability, you may resolve another of your units' PRODUCTION abilities in any system.","v":"te","n":"Agency Supply Network"}
+                           ],
+                  "brt":  [
+                              {"f":"I.I.H.Q. Modernization (Synergy CYBERNETIC+BIOTIC): When you gain this card, gain the Custodia Vigilia planet card and its legendary planet ability card. You are neighbors with all players that have units or control planets in or adjacent to the Mecatol Rex system.","v":["te"],"n":"I.I.H.Q. Modernization"}
+                          ],
+                  "fs":  [
+                             {"f":"Artemiris (cost 8, combat 7 ×2, move 1, capacity 6): Other players must spend 2 influence to activate this system.","v":["pok","te"],"n":"Artemiris"}
+                         ],
+                  "agt":  [
+                              {"f":"Xander Alexin Victori III: At any time, you may exhaust this card to allow any player to spend commodities as if they were trade goods.","v":["pok","te"],"n":"Xander Alexin Victori III"}
+                          ],
+                  "com":  [
+                              {"f":"Suffi An (unlock: Spend 1 trade good after you play an action card that has a component action): After you perform a component action, you may perform an additional action.","v":["pok","te"],"n":"Suffi An"}
+                          ],
+                  "hr":  [
+                             {"f":"Kuuasi Aun Jalatai (Argent Flight Tribunii; unlock: Have 3 scored objectives): OVERWING ZETA: At the start of a round of space combat in a system that contains a planet you control, place your flagship and up to a total of 2 cruisers and/or destroyers from your reinforcements in the active system. Then, purge this card.","v":["pok","te"],"n":"Kuuasi Aun Jalatai"},
+                             {"f":"Odlynn Myrr (Xxcha Tribunii; unlock: Have 3 scored objectives): OPERATION ARCHON: After an agenda is revealed, you may cast up to 6 additional votes on it. Predict aloud an outcome. For each player that votes for another outcome, gain 1 trade good and 1 command token. Then, purge this card.","v":"pok","n":"Odlynn Myrr"},
+                             {"f":"Odlynn Myrr (Xxcha Tribunii; unlock: Have 3 scored objectives): OPERATION ARCHON: After an agenda is revealed, you may cast up to 6 additional votes on it. Predict aloud an outcome. For each player that abstains or votes for another outcome, gain 1 trade good and 1 command token. Then, purge this card.","v":"te","n":"Odlynn Myrr"},
+                             {"f":"Harka Leeds (Mentak Tribunii; unlock: Have 3 scored objectives): ERWAN'S COVENANT: ACTION: Reveal cards from the action card deck until you reveal 3 action cards that have component actions. Draw those cards and shuffle the rest back into the action card deck. Then, purge this card.","v":["pok","te"],"n":"Harka Leeds"}
+                         ],
+                  "mc":  [
+                             {"f":"Omniopiares (cost 2, combat 6, sustain damage): Other players must spend 1 influence to commit ground forces to this planet.","v":["pok","te"],"n":"Omniopiares"}
+                         ]
+              },
     "yssaril":  {
                     "general":  [
                                     {

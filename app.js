@@ -61,7 +61,7 @@ function orderedSelected(all) {
     .map((o) => o.id);
 }
 function available() {
-  return FACTIONS.filter((f) => f.exp === "base" || (f.exp === "pok" && state.pok) || (f.exp === "te" && state.te));
+  return FACTIONS.filter((f) => f.exp === "base" || (f.exp === "pok" && (state.pok || (f.id === "keleres" && state.te))) || (f.exp === "te" && state.te));
 }
 // Portrait art is off-centre; zoom in and shift so the face sits in the middle of the circle.
 // A local images/<id>.png (user-supplied) is tried before the remote portrait.

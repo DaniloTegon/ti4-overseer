@@ -41,6 +41,7 @@ const FACTIONS = [
   { id: "firmament", full: "The Firmament", short: "Firmament", exp: "te", img: "firmament", tile: 96 },
   { id: "hacan", full: "Emirates of Hacan", short: "Hacan", exp: "base", img: "hacan", tile: 16 },
   { id: "jolnar", full: "Universities of Jol-Nar", short: "Jol-Nar", exp: "base", img: "jolnar", tile: 12 },
+  { id: "keleres", full: "The Council Keleres", short: "Keleres", exp: "pok", img: "keleres" },
   { id: "l1z1x", full: "L1Z1X Mindnet", short: "L1Z1X", exp: "base", img: "l1z1x", tile: 6 },
   { id: "letnev", full: "Barony of Letnev", short: "Letnev", exp: "base", img: "barony", tile: 10 },
   { id: "mahact", full: "Mahact Gene-Sorcerers", short: "Mahact", exp: "pok", img: "mahactgene", tile: 52 },
@@ -243,6 +244,14 @@ const FACTION_DATA = {
     strategic: [{ x: "Analytical: ignore 1 prerequisite when researching" }, { x: "Brilliant: Technology secondary may use primary" }, { x: "Research Agreement promissory: gain researched technology" }, { v: ["pok", "te"], x: "Agent: when player spends resources to research, exhaust to remove infantry for discount" }, { v: ["te"], x: "Breakthrough: exhaust specialty planet instead of resources" }],
     ground: [{ v: ["pok", "te"], x: "Mech: your infantry here ignore Fragile" }],
     component: [{ v: ["pok", "te"], x: "Hero: swap technologies for same color" }],
+  },
+  keleres: {
+    stgStart: [{ x: "Council Patronage: replenish commodities, gain 1 trade good" }],
+    turnStart: [{ x: "Law's Order: 1 influence to blank laws for your turn" }, { v: ["te"], x: "Law's Order Ω: 1 trade good or commodity to blank laws for a player's turn" }],
+    production: [{ x: "Agency Supply Network: after resolving production, resolve another of your production abilities" }],
+    component: [{ x: "Suffi An: after your component action, perform an additional action" }, { v: ["te"], x: "Executive Order: reveal an agenda and vote as speaker" }, { x: "Harka Leeds: reveal and draw 3 component-action cards" }],
+    combat: [{ x: "Kuuasi Aun Jalatai: at combat start, place Artemiris and up to 2 cruisers/destroyers" }],
+    agendaVote: [{ x: "Keleres Rider: predict agenda outcome; correct prediction draws 1 action card and gains 2 trade goods" }, { x: "Odlynn Myrr: up to 6 extra votes, predict outcome; gain trade goods and tokens when others disagree" }],
   },
   l1z1x: {
     activation: [{ v: ["pok", "te"], x: "Agent: after player activates system, exhaust: swap infantry for mech" }],
