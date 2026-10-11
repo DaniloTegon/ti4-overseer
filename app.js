@@ -95,14 +95,18 @@ function parseTts() {
   let rings = 0, total = 0;
   while (total < ring.length) { rings++; total += 6 * rings; }
   if (total !== ring.length) return { err: `${ring.length} ring tiles does not complete a ring` };
-  const factions = [], leg = [];
+  const factions = [], leg = [], tiles = [];
   for (const t of tokens) {
     const n = parseInt(t.replace(/[{}]/g, ""), 10);
     const f = HOME_TILE[n], l = LEG_TILE[n];
+    tiles.push(n);
     if (f && !factions.includes(f)) factions.push(f);
     if (l && !leg.includes(l)) leg.push(l);
   }
-  return { ok: true, rings, factions, leg, active: factions.length > 0 };
+  const te = factions.some((id) => byId[id].exp === "te") || leg.some((id) => LEGENDARY.find((l) => l.id === id).exp === "te");
+  if (te && tiles.includes(18)) leg.push("mecatolrex");
+  const pok = te || factions.some((id) => byId[id].exp === "pok") || leg.some((id) => LEGENDARY.find((l) => l.id === id).exp === "pok");
+  return { ok: true, rings, factions, leg, pok, te, active: factions.length > 0 };
 }
 function applyTts() {
   tts = parseTts();
@@ -117,7 +121,8 @@ function applyTts() {
   if (tts.active) {
     state.selected = tts.factions.slice(0, 8);
     state.leg = tts.leg;
-    if (state.selected.some((id) => byId[id].exp === "pok") || tts.leg.length) state.pok = true;
+    state.pok = tts.pok;
+    state.te = tts.te;
   }
   $("#factions").hidden = !!tts.active;
 }
@@ -126,6 +131,8 @@ function applyTts() {
 function renderSetup() {
   $("#expPok").checked = state.pok;
   $("#expTe").checked = state.te;
+  $("#expPok").disabled = !!tts.active && tts.pok;
+  $("#expTe").disabled = !!tts.active && tts.te;
   $("#acrToggle").checked = state.acr;
   $("#lineColor").checked = state.line;
   document.querySelectorAll('input[name="group"]').forEach((r) => (r.checked = r.value === state.group));
@@ -305,6 +312,7 @@ function renderTimeline() {
 function renderAll() {
   applyTts();
   fixPicks();
+  if (state.pok && !state.leg.includes("mirage")) state.leg.push("mirage");
   renderSetup(); renderFactions(); renderOverview(); renderTimeline();
   save();
 }
