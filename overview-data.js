@@ -315,9 +315,14 @@ const OVERVIEW = {
                            ],
                    "tech":  [
                                 {
-                                    "f":  "Wormhole Generator: ACTION: Exhaust this card to place or move a Creuss wormhole token into either a system that contains a planet you control or a non-home system that does not contain another player\u0027s ships.",
-                                    "v":  null,
+                                    "f":  "Wormhole Generator: At the start of the status phase, place or move a Creuss wormhole token into either a system that contains a planet you control or a non-home system that does not contain another player\u0027s ships.",
+                                    "v":  "base",
                                     "n":  "Wormhole Generator"
+                                },
+                                {
+                                    "f":  "Wormhole Generator Ω: ACTION: Exhaust this card to place or move a Creuss wormhole token into either a system that contains a planet you control or a non-home system that does not contain another player\u0027s ships.",
+                                    "v":  ["pok", "te"],
+                                    "n":  "Wormhole Generator Ω"
                                 },
                                 {
                                     "f":  "Dimensional Splicer: At the start of space combat in a system that contains a wormhole and 1 or more of your ships, you may produce 1 hit and assign it to 1 of your opponent\u0027s ships.",
@@ -363,7 +368,7 @@ const OVERVIEW = {
                            ],
                    "hr":  [
                               {
-                                  "f":  "Riftwalker Meian (unlock: Have 3 scored objectives): ACTION: Swap the positions of any 2 non-Fracture systems that contain wormholes or your units, other than the Creuss system, Ahk Creuxx system, or the Wormhole Nexus.",
+                                  "f":  "Riftwalker Meian (unlock: Have 3 scored objectives): SINGULARITY REACTOR: CHANGING THE WAYS. ACTION: Swap the positions of any 2 non-Fracture systems that contain wormholes or your units, other than the Creuss system, Ahk Creuxx system, or the Wormhole Nexus. Then, purge this card.",
                                   "v":  [
                                             "pok",
                                             "te"
@@ -1362,14 +1367,19 @@ const OVERVIEW = {
                                    "n":  "Prototype War Sun II"
                                },
                                {
-                                   "f":  "Magmus Reactor: Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability as if it were 1 of your units.",
-                                   "v":  null,
+                                   "f":  "Magmus Reactor: Your ships can move into supernovas. After 1 or more of your units use PRODUCTION in a system that either contains a war sun or is adjacent to a supernova, gain 1 trade good.",
+                                   "v":  "base",
                                    "n":  "Magmus Reactor"
+                               },
+                               {
+                                   "f":  "Magmus Reactor Ω: Your ships can move into supernovas. Each supernova that contains 1 or more of your units gains the PRODUCTION 5 ability as if it were 1 of your units.",
+                                   "v":  ["pok", "te"],
+                                   "n":  "Magmus Reactor Ω"
                                }
                            ],
                   "brt":  [
                               {
-                                  "f":  "Stellar Genesis (Synergy CYBERNETIC+WARFARE): When you gain this card, place the Avernus planet token into a non-home system that is adjacent to a planet you control; gain the Avernus planet card and ready it. After you move one of your war suns out of or through Avernus\u0027s system and into a non-home system, you may move the Avernus token with it.",
+                                  "f":  "Stellar Genesis (Synergy CYBERNETIC+WARFARE): When you gain this card, place the Avernus planet token into a non-home system that is adjacent to a planet you control; gain control of and ready it. After you move one of your war suns out of or through Avernus\u0027s system and into a non-home system, you may move the Avernus token with it.",
                                   "v":  [
                                             "te"
                                         ],
@@ -1677,16 +1687,6 @@ const OVERVIEW = {
                                    "v":  null,
                                    "n":  "Valefar Assimilator Y"
                                },
-                               {
-                                   "f":  "???\\_NULL\\_REFERENCE\\_???: When one of your ships is destroyed, you may produce a ship of the same type at a space dock in your home system.",
-                                   "v":  null,
-                                   "n":  "???\\_NULL\\_REFERENCE\\_???"
-                               },
-                               {
-                                   "f":  "???\\_ERROR\\_ERROR\\_???: ACTION: Exhaust this card to place 1 PDS on a planet you control. ACTION: Exhaust this card to repair all of your damaged units. ACTION: Exhaust this card and discard 1 action card to draw 1 action card.",
-                                   "v":  null,
-                                   "n":  "???\\_ERROR\\_ERROR\\_???"
-                               }
                            ],
                   "brt":  [
                               {
@@ -1879,12 +1879,12 @@ const OVERVIEW = {
     "ralnel":  {
                    "general":  [
                                    {
-                                       "f":  "SURVIVAL INSTINCT: After another player activates a system that contains your ships: you may move up to 2 of your ships into the active system from adjacent systems that do not contain your command tokens.",
+                                       "f":  "SURVIVAL INSTINCT: After a player activates a system that contains your ships: you may move up to 2 of your ships into the active system from adjacent systems that do not contain your command tokens.",
                                        "v":  "te",
                                        "n":  "Survival Instinct"
                                    },
                                    {
-                                       "f":  "MINIATURIZATION: Your structures can be transported by any ship; this does not require or count against capacity. While your structures are in the space area, they cannot use their unit abilities. At the end of your tactical actions: you may place your structures that are in space areas onto planets you control in their respective systems.",
+                                       "f":  "MINIATURIZATION: Your structures can be transported by any ship; this does not require or count against capacity. While your structures are in the space area, they cannot use their unit abilities. At the end of your tactical action: you may place your structures that are in space areas onto planets you control in their respective systems.",
                                        "v":  "te",
                                        "n":  "Miniaturization"
                                    }
@@ -2480,7 +2480,7 @@ const OVERVIEW = {
                                    "n":  "Lazax Gate Folding"
                                },
                                {
-                                   "f":  "Hegemonic Trade Policy: Exhaust this card when 1 or more of your units use PRODUCTION; swap the resource and influence values of 1 planet you control during that use of Production.",
+                                   "f":  "Hegemonic Trade Policy: Exhaust this card when 1 or more of your units use PRODUCTION; swap the resource and influence values of 1 planet you control until the end of your turn.",
                                    "v":  null,
                                    "n":  "Hegemonic Trade Policy"
                                }
@@ -2659,9 +2659,14 @@ const OVERVIEW = {
                         ],
                 "tech":  [
                              {
-                                 "f":  "Yin Spinner Omega: After you produce units, place up to 2 infantry from your reinforcements on any planet you control or in any space area that contains 1 or more of your ships.",
-                                 "v":  null,
-                                 "n":  "Yin Spinner Omega"
+                                 "f":  "Yin Spinner: After 1 or more of your units use PRODUCTION, place 1 infantry from your reinforcements on a planet you control in that system.",
+                                 "v":  "base",
+                                 "n":  "Yin Spinner"
+                             },
+                             {
+                                 "f":  "Yin Spinner Ω: After you produce units, place up to 2 infantry from your reinforcements on any planet you control or in any space area that contains 1 or more of your ships.",
+                                 "v":  ["pok", "te"],
+                                 "n":  "Yin Spinner Ω"
                              },
                              {
                                  "f":  "Impulse Core: At the start of a space combat, you may destroy 1 of your cruisers or destroyers in the active system to produce 1 hit against your opponent\u0027s ships; that hit must be assigned by your opponent to 1 of their non-fighters ships if able.",
@@ -2728,7 +2733,7 @@ const OVERVIEW = {
             },
     "keleres":  {
                   "general":  [
-                                  {"f":"THE TRIBUNII: During setup, choose an unused faction from Mentak, Xxcha, or the Argent Flight; use that faction's home system, command tokens, and control tokens.","v":"pok","n":"The Tribunii"},
+                                  {"f":"THE TRIBUNII: During setup, choose an unplayed faction from among the Mentak, Xxcha, and the Argent Flight; take that faction's home system, command tokens, and control markers. Additionally, take the Keleres Hero that corresponds to that faction.","v":"pok","n":"The Tribunii"},
                                   {"f":"THE TRIBUNII: During setup, choose a Keleres hero that corresponds to an unused faction; use that faction's home system, command tokens, and control tokens. Do not use the other Keleres heroes.","v":"te","n":"The Tribunii"},
                                   {"f":"COUNCIL PATRONAGE: At the start of the strategy phase, replenish your commodities, then gain 1 trade good.","v":["pok","te"],"n":"Council Patronage"},
                                   {"f":"LAW'S ORDER: At the start of your turn, you may spend 1 influence to treat all laws as blank until the end of your turn.","v":"pok","n":"Law's Order"},
@@ -2741,7 +2746,7 @@ const OVERVIEW = {
                                {"f":"I.I.H.Q. Modernization: You are neighbors with all players that have units or control planets in or adjacent to the Mecatol Rex system. Gain the Custodia Vigilia planet card and its legendary planet ability card. You cannot lose these cards, and this card cannot have an X or Y Assimilator token placed on it.","v":"pok","n":"I.I.H.Q. Modernization"},
                                {"f":"Agency Supply Network: Whenever you resolve one of your PRODUCTION abilities, you may resolve an additional one of your PRODUCTION abilities in any system; the additional use does not trigger this ability.","v":"pok","n":"Agency Supply Network"},
                                {"f":"Executive Order: ACTION: Exhaust this card and draw the top or bottom card of the agenda deck. Players immediately vote on this agenda as if you were the speaker; you can spend trade goods and resources on this agenda as if they were votes.","v":"te","n":"Executive Order"},
-                               {"f":"Agency Supply Network: Once per action, when you resolve a unit's PRODUCTION ability, you may resolve another of your units' PRODUCTION abilities in any system.","v":"te","n":"Agency Supply Network"}
+                               {"f":"Agency Supply Network: Once per action, when you resolve a unit's PRODUCTION ability, you may resolve another of your unit's PRODUCTION abilities in any system.","v":"te","n":"Agency Supply Network"}
                            ],
                   "brt":  [
                               {"f":"I.I.H.Q. Modernization (Synergy CYBERNETIC+BIOTIC): When you gain this card, gain the Custodia Vigilia planet card and its legendary planet ability card. You are neighbors with all players that have units or control planets in or adjacent to the Mecatol Rex system.","v":["te"],"n":"I.I.H.Q. Modernization"}

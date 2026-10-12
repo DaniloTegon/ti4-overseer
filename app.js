@@ -78,9 +78,10 @@ const level = () => (state.te ? "te" : state.pok ? "pok" : "base");
 const vis = (o) => !o.v || o.v.includes(level());
 const byId = Object.fromEntries(FACTIONS.map((f) => [f.id, f]));
 const HOME_TILE = Object.fromEntries(FACTIONS.filter((f) => f.tile).map((f) => [f.tile, f.id]));
-const LEG_TILE = Object.fromEntries(LEGENDARY.filter((l) => l.tile).map((l) => [l.tile, l.id]));
+const LEG_TILE = Object.fromEntries(LEGENDARY.flatMap((planet) => [planet.tile, ...(planet.tiles || [])].filter(Number.isInteger).map((tile) => [tile, planet.id])));
 const maxPicks = () => (state.selected.length <= 4 ? 2 : 1);
 const legAvail = (l) => (l.exp === "pok" ? state.pok : state.te);
+const legendaryAvail = (l) => legAvail(l) && !(state.te && l.id === "custodiavigilia");
 const relicAvail = (r) => (r.exp === "pok" ? state.pok : state.te);
 
 /* ---------- acronyms ---------- */
@@ -153,7 +154,7 @@ function parseTts() {
   const raw = state.tts.trim();
   if (!raw) return { empty: true };
   const tokens = raw.split(/\s+/);
-  const re = /^(\{-?\d{1,3}\}|-1|\d{1,3}([AB]\d?)?)$/i;
+  const re = /^(\{-?\d{1,4}\}|-1|\d{1,4}([AB]\d?)?)$/i;
   const bad = tokens.filter((t) => !re.test(t));
   if (bad.length) return { err: `Invalid token(s): ${bad.slice(0, 5).join(", ")}` };
   const ring = tokens.filter((t, i) => !(i === 0 && t.startsWith("{")));
@@ -238,7 +239,7 @@ function renderSetup() {
   lg.hidden = !state.acr;
   if (state.acr) lg.innerHTML = fmtLegend();
   const restrictLegendary = (state.entryMode === "tts" && !!state.tts.trim() && !tts.err) || (state.entryMode === "ti-assistant" && state.importedFromTia);
-  const opts = LEGENDARY.filter((l) => legAvail(l) && (!restrictLegendary || state.leg.includes(l.id)));
+  const opts = LEGENDARY.filter((l) => legendaryAvail(l) && (!restrictLegendary || state.leg.includes(l.id)));
   $("#legSel").classList.toggle("closed", state.legCollapsed);
   $("[data-collapse='legendary']").setAttribute("aria-expanded", String(!state.legCollapsed));
   $("#legList").innerHTML = opts.length
@@ -391,14 +392,14 @@ function renderOverview() {
 
 function renderOwnedAssets(kind, items, selected, owners, heading, factionIds = visibleSelected(true)) {
   const owned = factionIds.flatMap((owner) =>
-    items.filter((item) => selected.includes(item.id) && (owners[item.id] === owner) && (kind === "planet" ? legAvail(item) : relicAvail(item)))
+    items.filter((item) => selected.includes(item.id) && (owners[item.id] === owner) && (kind === "planet" ? legendaryAvail(item) : relicAvail(item)))
       .map((item) => ({ text: `${item.name}: ${(kind === "planet" ? txt({ ...item, i: IDIOTIC_PLANETS[item.id] }) : txt({ ...item, i: IDIOTIC_RELICS[item.id] })).replace(/[.!?]+$/, "")}`, version: item.exp }))
       .map((item) => groupLine(owner, [item])));
   return owned.length ? `<h3>${fmt(heading)}</h3><ul>${owned.join("")}</ul>` : "";
 }
 function renderUnclaimedLegendary() {
   if (!state.overviewFilters.unclaimedLegendary) return "";
-  const unclaimed = LEGENDARY.filter((item) => legAvail(item) && state.leg.includes(item.id) && !state.planetOwners[item.id]);
+  const unclaimed = LEGENDARY.filter((item) => legendaryAvail(item) && state.leg.includes(item.id) && !state.planetOwners[item.id]);
   if (!unclaimed.length) return "";
   const lines = unclaimed.map((item) => {
     const text = txt({ ...item, i: IDIOTIC_PLANETS[item.id] }).replace(/[.!?]+$/, "");
@@ -428,6 +429,15 @@ function decodeFirestoreFields(fields = {}) {
 function localFactionId(remoteId) {
   const faction = FACTIONS.find((candidate) => normalizeName(candidate.full) === normalizeName(remoteId));
   return faction && faction.id;
+}
+function localLegendaryId(remoteName) {
+  const normalized = normalizeName(remoteName);
+  if (normalized === "custodiavigilia") {
+    const omega = state.te || String(remoteName).includes("Ω") || /omega/i.test(String(remoteName));
+    return omega ? "custodiavigiliaomega" : "custodiavigilia";
+  }
+  const planet = LEGENDARY.find((candidate) => normalizeName(candidate.name) === normalized);
+  return planet && planet.id;
 }
 async function importTiaGame(silent = false) {
   if (tiaImportInFlight) return;
@@ -473,11 +483,11 @@ async function importTiaGame(silent = false) {
     state.planetOwners = {};
     state.leg = [];
     for (const [planetName, planet] of Object.entries(game.planets || {})) {
-      const legendary = LEGENDARY.find((item) => normalizeName(item.name) === normalizeName(planetName));
-      if (!legendary) continue;
-      if (!state.leg.includes(legendary.id)) state.leg.push(legendary.id);
+      const legendaryId = localLegendaryId(planetName);
+      if (!legendaryId) continue;
+      if (!state.leg.includes(legendaryId)) state.leg.push(legendaryId);
       const owner = localFactionId(planet.owner);
-      if (owner) state.planetOwners[legendary.id] = owner;
+      if (owner) state.planetOwners[legendaryId] = owner;
     }
     state.relics = [];
     state.relicOwners = {};
@@ -587,9 +597,9 @@ document.querySelectorAll(".toggle").forEach((h) =>
 function dropUnavailable() {
   const ids = new Set(available().map((f) => f.id));
   state.selected = state.selected.filter((id) => ids.has(id));
-  state.leg = state.leg.filter((id) => legAvail(LEGENDARY.find((l) => l.id === id)));
+  state.leg = state.leg.filter((id) => legendaryAvail(LEGENDARY.find((l) => l.id === id)));
   state.relics = state.relics.filter((id) => relicAvail(RELICS.find((r) => r.id === id)));
-  for (const id of Object.keys(state.planetOwners)) if (!LEGENDARY.some((l) => l.id === id && legAvail(l))) delete state.planetOwners[id];
+  for (const id of Object.keys(state.planetOwners)) if (!LEGENDARY.some((l) => l.id === id && legendaryAvail(l))) delete state.planetOwners[id];
   for (const id of Object.keys(state.relicOwners)) if (!RELICS.some((r) => r.id === id && relicAvail(r))) delete state.relicOwners[id];
 }
 $("#expPok").addEventListener("change", (e) => { state.pok = e.target.checked; dropUnavailable(); renderAll(); });
