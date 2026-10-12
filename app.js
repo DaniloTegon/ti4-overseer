@@ -7,7 +7,7 @@ const state = Object.assign({
   pok: false, te: false, acr: false, short: false, desc: "original", line: true, group: "component", tts: "",
   selected: [], picks: {}, colors: {}, leg: [], relics: [], planetOwners: {}, relicOwners: {}, assetPicker: null,
   hiddenFactions: [], legCollapsed: false, relicCollapsed: false, factionsCollapsed: false, openIds: null,
-  onlyActivePlayer: false, activePlayer: null, tiaCode: "", importedFromTia: false, tiaUpdateTime: null,
+  onlyActivePlayer: false, activePlayer: null, tiaCode: "", importedFromTia: false, tiaUpdateTime: null, entryMode: null,
   overviewFilters: { factionAbilities: true, unclaimedLegendary: true, promissory: true, racial: true, breakthrough: true, flagship: true, leaders: true, mechs: true },
 }, JSON.parse(localStorage.getItem(KEY) || "{}"));
 state.relics ||= [];
@@ -24,6 +24,56 @@ if (!state.mirageAutoSelectionFixed) {
 let pickerFor = null;
 let tts = { empty: true };
 const save = () => localStorage.setItem(KEY, JSON.stringify(state));
+function clearGameInfo() {
+  state.pok = false;
+  state.te = false;
+  state.tts = "";
+  state.selected = [];
+  state.picks = {};
+  state.colors = {};
+  state.leg = [];
+  state.relics = [];
+  state.planetOwners = {};
+  state.relicOwners = {};
+  state.hiddenFactions = [];
+  state.assetPicker = null;
+  state.onlyActivePlayer = false;
+  state.activePlayer = null;
+  state.tiaCode = "";
+  state.importedFromTia = false;
+  state.tiaUpdateTime = null;
+  state.factionsCollapsed = false;
+  state.legCollapsed = false;
+  state.relicCollapsed = false;
+  state.openIds = null;
+  pickerFor = null;
+  tts = { empty: true };
+  renderedEntryMode = null;
+  $("#factions").hidden = false;
+}
+function selectEntryMode(mode) {
+  clearGameInfo();
+  state.entryMode = mode;
+  save();
+  $("#modeChooser").hidden = true;
+  $("#assistantApp").hidden = false;
+  dropUnavailable();
+  renderAll();
+  if (mode === "tts") {
+    $("#tts").focus({ preventScroll: true });
+    $("#tts").scrollIntoView({ behavior: "smooth", block: "center" });
+  } else if (mode === "ti-assistant") {
+    $("#tiaCode").focus({ preventScroll: true });
+  }
+}
+
+function changeEntryMode() {
+  clearGameInfo();
+  state.entryMode = null;
+  save();
+  $("#assistantApp").hidden = true;
+  $("#modeChooser").hidden = false;
+}
 const level = () => (state.te ? "te" : state.pok ? "pok" : "base");
 const vis = (o) => !o.v || o.v.includes(level());
 const byId = Object.fromEntries(FACTIONS.map((f) => [f.id, f]));
@@ -124,6 +174,11 @@ function parseTts() {
   return { ok: true, rings, factions, leg, pok, te, active: factions.length > 0 };
 }
 function applyTts() {
+  if (!(state.entryMode === "tts" && $("#tts"))) {
+    tts = { empty: true };
+    $("#factions").hidden = false;
+    return;
+  }
   tts = parseTts();
   const el = $("#ttsInfo");
   if (tts.empty) { el.textContent = ""; el.className = "hint"; }
@@ -133,16 +188,42 @@ function applyTts() {
       (tts.active ? " – factions and legendary planets taken from the map." : " – no home systems found, select factions manually.");
     el.className = "hint ok";
   }
-  if (tts.active && !state.importedFromTia) {
-    state.selected = tts.factions.slice(0, 8);
-    state.leg = tts.leg;
+  if (tts.ok && !state.importedFromTia) {
+    state.selected = tts.active ? tts.factions.slice(0, 8) : [];
     state.pok = tts.pok;
     state.te = tts.te;
+    state.leg = [...new Set([
+      ...tts.leg,
+      ...(tts.pok ? ["mirage", "mallice"] : []),
+      ...(tts.te ? ["styx", "thunders"] : []),
+    ])];
   }
   $("#factions").hidden = !!tts.active;
 }
 
 /* ---------- setup ---------- */
+let renderedEntryMode = null;
+function renderSetupModeControl() {
+  const control = $("#setupModeControl");
+  if (renderedEntryMode !== state.entryMode) {
+    const changeButton = `<button class="mode-change" type="button" data-change-entry>Change mode</button>`;
+    if (state.entryMode === "tts") {
+      control.innerHTML = `<div class="setup-mode-field tts-mode-field"><label class="setup-mode-label" for="tts">TTS Map String</label><textarea id="tts" rows="1" placeholder="Paste Tabletop Simulator / Milty map string"></textarea><span id="ttsInfo" class="hint"></span>${changeButton}</div>`;
+    } else if (state.entryMode === "ti-assistant") {
+      control.innerHTML = `<div class="setup-mode-field tia-mode-field"><label class="setup-mode-label" for="tiaCode">TI Assistant Code</label><input id="tiaCode" type="text" maxlength="12" autocomplete="off" placeholder="e.g. TZXFFY"><button id="tiaImport" type="button">Import</button><span id="tiaImportInfo" class="hint" role="status" aria-live="polite"></span>${changeButton}</div>`;
+    } else if (state.entryMode === "manual") {
+      control.innerHTML = `<div class="setup-mode-field manual-mode-field"><span class="setup-mode-label">Manual Mode</span>${changeButton}</div>`;
+    } else {
+      control.innerHTML = "";
+    }
+    renderedEntryMode = state.entryMode;
+  }
+  const mapInput = $("#tts");
+  if (mapInput && mapInput.value !== state.tts) mapInput.value = state.tts;
+  const codeInput = $("#tiaCode");
+  if (codeInput && codeInput.value !== state.tiaCode) codeInput.value = state.tiaCode;
+}
+
 function renderSetup() {
   $("#expPok").checked = state.pok;
   $("#expTe").checked = state.te;
@@ -153,23 +234,23 @@ function renderSetup() {
   document.querySelectorAll('input[name="group"]').forEach((r) => (r.checked = r.value === state.group));
   $("#shortNames").checked = state.short;
   document.querySelectorAll('input[name="desc"]').forEach((r) => (r.checked = r.value === state.desc));
-  if ($("#tts").value !== state.tts) $("#tts").value = state.tts;
-  if ($("#tiaCode").value !== state.tiaCode) $("#tiaCode").value = state.tiaCode;
   const lg = $("#legend");
   lg.hidden = !state.acr;
   if (state.acr) lg.innerHTML = fmtLegend();
-  const opts = LEGENDARY.filter((l) => legAvail(l) && (!tts.active || state.leg.includes(l.id) || (l.id === "mirage" && state.pok) || (l.id === "thunders" && state.te)));
+  const restrictLegendary = (state.entryMode === "tts" && !!state.tts.trim() && !tts.err) || (state.entryMode === "ti-assistant" && state.importedFromTia);
+  const opts = LEGENDARY.filter((l) => legAvail(l) && (!restrictLegendary || state.leg.includes(l.id)));
   $("#legSel").classList.toggle("closed", state.legCollapsed);
   $("[data-collapse='legendary']").setAttribute("aria-expanded", String(!state.legCollapsed));
   $("#legList").innerHTML = opts.length
     ? opts.map((l) => assetTile("planet", l, state.leg, state.planetOwners)).join("")
-    : `<span class="hint">Enable an expansion to choose legendary planets.</span>`;
-  const relics = RELICS.filter(relicAvail);
+    : `<span class="hint">${restrictLegendary ? "No legendary planets in this game." : "Enable an expansion to choose legendary planets."}</span>`;
+  const restrictRelics = state.entryMode === "ti-assistant" && state.importedFromTia;
+  const relics = RELICS.filter((relic) => relicAvail(relic) && (!restrictRelics || state.relics.includes(relic.id)));
   $("#relicSel").classList.toggle("closed", state.relicCollapsed);
   $("[data-collapse='relics']").setAttribute("aria-expanded", String(!state.relicCollapsed));
   $("#relicList").innerHTML = relics.length
     ? relics.map((r) => assetTile("relic", r, state.relics, state.relicOwners)).join("")
-    : `<span class="hint">Enable an expansion to choose relics.</span>`;
+    : `<span class="hint">${restrictRelics ? "No relics in this game." : "Enable an expansion to choose relics."}</span>`;
 }
 
 function assetTile(kind, item, selected, owners) {
@@ -408,8 +489,6 @@ async function importTiaGame(silent = false) {
       if (owner) state.relicOwners[localRelic.id] = owner;
     }
     state.tts = game.options && game.options["map-string"] || "";
-    const mapLegendary = parseTts();
-    if (mapLegendary.ok) state.leg = [...new Set([...state.leg, ...mapLegendary.leg])];
     state.tiaCode = code;
     state.importedFromTia = true;
     if (!silent) state.hiddenFactions = [];
@@ -431,7 +510,7 @@ async function importTiaGame(silent = false) {
 }
 
 async function checkTiaChanges() {
-  if (!state.importedFromTia || !state.tiaCode || document.hidden || tiaSyncInFlight || tiaImportInFlight) return;
+  if (state.entryMode !== "ti-assistant" || !state.importedFromTia || !state.tiaCode || document.hidden || tiaSyncInFlight || tiaImportInFlight) return;
   tiaSyncInFlight = true;
   const code = state.tiaCode;
   try {
@@ -491,6 +570,7 @@ function renderTimeline() {
 }
 
 function renderAll() {
+  renderSetupModeControl();
   applyTts();
   fixPicks();
   renderSetup(); renderFactions(); renderOverview(); renderTimeline();
@@ -500,8 +580,9 @@ function renderAll() {
 /* ---------- events ---------- */
 document.querySelectorAll(".toggle").forEach((h) =>
   h.addEventListener("click", () => {
-    if (h.parentElement.id === "factions") { state.factionsCollapsed = !state.factionsCollapsed; renderFactions(); save(); }
-    else h.parentElement.classList.toggle("closed");
+    const panel = h.closest(".panel");
+    if (panel.id === "factions") { state.factionsCollapsed = !state.factionsCollapsed; renderFactions(); save(); }
+    else panel.classList.toggle("closed");
   }));
 function dropUnavailable() {
   const ids = new Set(available().map((f) => f.id));
@@ -513,6 +594,13 @@ function dropUnavailable() {
 }
 $("#expPok").addEventListener("change", (e) => { state.pok = e.target.checked; dropUnavailable(); renderAll(); });
 $("#expTe").addEventListener("change", (e) => { state.te = e.target.checked; dropUnavailable(); renderAll(); });
+$("#modeManual").addEventListener("click", () => selectEntryMode("manual"));
+$("#modeTts").addEventListener("click", () => selectEntryMode("tts"));
+$("#modeTiAssistant").addEventListener("click", () => selectEntryMode("ti-assistant"));
+$("#setupModeControl").addEventListener("click", (e) => {
+  if (e.target.closest("[data-change-entry]")) changeEntryMode();
+  else if (e.target.closest("#tiaImport")) importTiaGame();
+});
 $("#lineColor").addEventListener("change", (e) => { state.line = e.target.checked; renderAll(); });
 document.querySelectorAll('input[name="group"]').forEach((r) =>
   r.addEventListener("change", (e) => { state.group = e.target.value; renderAll(); }));
@@ -520,20 +608,30 @@ $("#acrToggle").addEventListener("change", (e) => { state.acr = e.target.checked
 $("#shortNames").addEventListener("change", (e) => { state.short = e.target.checked; renderAll(); });
 document.querySelectorAll('input[name="desc"]').forEach((r) =>
   r.addEventListener("change", (e) => { state.desc = e.target.value; renderAll(); }));
-$("#tts").addEventListener("change", (e) => { state.tts = e.target.value; state.importedFromTia = false; state.tiaUpdateTime = null; state.activePlayer = null; state.tiaCode = ""; renderAll(); });
-$("#tts").addEventListener("input", (e) => { state.tts = e.target.value; state.importedFromTia = false; state.tiaUpdateTime = null; state.activePlayer = null; state.tiaCode = ""; if (parseTts().ok || !state.tts.trim()) renderAll(); else applyTts(); });
-$("#tiaCode").addEventListener("input", (e) => {
-  const changedCode = e.target.value.trim().toUpperCase() !== state.tiaCode;
-  state.tiaCode = e.target.value;
-  if (state.importedFromTia && changedCode) {
-    state.importedFromTia = false;
-    state.tiaUpdateTime = null;
-    $("#tiaImportInfo").textContent = "Import the new code to follow another game.";
-    $("#tiaImportInfo").className = "hint";
+$("#setupModeControl").addEventListener("input", (e) => {
+  if (e.target.id === "tts") {
+    state.tts = e.target.value;
+    if (parseTts().ok || !state.tts.trim()) renderAll();
+    else applyTts();
+    return;
   }
-  save();
+  if (e.target.id === "tiaCode") {
+    const changedCode = e.target.value.trim().toUpperCase() !== state.tiaCode;
+    state.tiaCode = e.target.value;
+    if (state.importedFromTia && changedCode) {
+      state.importedFromTia = false;
+      state.tiaUpdateTime = null;
+      $("#tiaImportInfo").textContent = "Import the new code to follow another game.";
+      $("#tiaImportInfo").className = "hint";
+    }
+    save();
+  }
 });
-$("#tiaImport").addEventListener("click", () => importTiaGame());
+$("#setupModeControl").addEventListener("change", (e) => {
+  if (e.target.id !== "tts") return;
+  state.tts = e.target.value;
+  renderAll();
+});
 $("#setupBody").addEventListener("click", (e) => {
   const toggle = e.target.closest("[data-collapse]");
   if (toggle) {
@@ -653,7 +751,7 @@ $("#timelineTree").addEventListener("toggle", (e) => {
 document.querySelectorAll(".toggle").forEach((h) =>
   h.addEventListener("contextmenu", (e) => {
     e.preventDefault();
-    const p = h.parentElement;
+    const p = h.closest(".panel");
     const nested = [...p.querySelectorAll("details")];
     const closed = p.id === "factions" ? state.factionsCollapsed : p.classList.contains("closed");
     const expand = closed || nested.some((d) => !d.open);
@@ -678,13 +776,18 @@ $("#donateBtn").addEventListener("click", () => pixDialog.showModal());
 $("#pixClose").addEventListener("click", () => pixDialog.close());
 pixDialog.addEventListener("click", (e) => { if (e.target === pixDialog) pixDialog.close(); });
 
-applyTts();
-dropUnavailable();
-renderAll();
-if (state.importedFromTia && state.tiaCode) {
-  $("#tiaImportInfo").textContent = `Watching TI Assistant for changes; checks every ${TIA_SYNC_INTERVAL / 1000} seconds.`;
-  $("#tiaImportInfo").className = "hint ok";
-  checkTiaChanges();
+const hasChosenEntryMode = state.entryMode === "manual" || state.entryMode === "tts" || state.entryMode === "ti-assistant";
+$("#modeChooser").hidden = hasChosenEntryMode;
+$("#assistantApp").hidden = !hasChosenEntryMode;
+if (hasChosenEntryMode) {
+  applyTts();
+  dropUnavailable();
+  renderAll();
+  if (state.entryMode === "ti-assistant" && state.importedFromTia && state.tiaCode) {
+    $("#tiaImportInfo").textContent = `Watching TI Assistant for changes; checks every ${TIA_SYNC_INTERVAL / 1000} seconds.`;
+    $("#tiaImportInfo").className = "hint ok";
+    checkTiaChanges();
+  }
 }
 setInterval(checkTiaChanges, TIA_SYNC_INTERVAL);
 })();
