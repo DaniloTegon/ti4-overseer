@@ -7,11 +7,15 @@ const state = Object.assign({
   pok: false, te: false, acr: false, short: false, desc: "original", line: true, group: "component", tts: "",
   selected: [], picks: {}, colors: {}, leg: [], relics: [], planetOwners: {}, relicOwners: {}, assetPicker: null,
   hiddenFactions: [], legCollapsed: false, relicCollapsed: false, factionsCollapsed: false, openIds: null,
+  onlyActivePlayer: false, activePlayer: null, tiaCode: "", importedFromTia: false, tiaUpdateTime: null,
+  overviewFilters: { factionAbilities: true, unclaimedLegendary: true, promissory: true, racial: true, breakthrough: true, flagship: true, leaders: true, mechs: true },
 }, JSON.parse(localStorage.getItem(KEY) || "{}"));
 state.relics ||= [];
 state.planetOwners ||= {};
 state.relicOwners ||= {};
 state.hiddenFactions ||= [];
+delete state.tiaPlanets;
+state.overviewFilters = Object.assign({ factionAbilities: true, unclaimedLegendary: true, promissory: true, racial: true, breakthrough: true, flagship: true, leaders: true, mechs: true }, state.overviewFilters || {});
 if (!state.mirageAutoSelectionFixed) {
   if (!state.planetOwners.mirage) state.leg = state.leg.filter((id) => id !== "mirage");
   if (!state.relicOwners.dominusorb) state.relics = state.relics.filter((id) => id !== "dominusorb");
@@ -129,7 +133,7 @@ function applyTts() {
       (tts.active ? " – factions and legendary planets taken from the map." : " – no home systems found, select factions manually.");
     el.className = "hint ok";
   }
-  if (tts.active) {
+  if (tts.active && !state.importedFromTia) {
     state.selected = tts.factions.slice(0, 8);
     state.leg = tts.leg;
     state.pok = tts.pok;
@@ -150,6 +154,7 @@ function renderSetup() {
   $("#shortNames").checked = state.short;
   document.querySelectorAll('input[name="desc"]').forEach((r) => (r.checked = r.value === state.desc));
   if ($("#tts").value !== state.tts) $("#tts").value = state.tts;
+  if ($("#tiaCode").value !== state.tiaCode) $("#tiaCode").value = state.tiaCode;
   const lg = $("#legend");
   lg.hidden = !state.acr;
   if (state.acr) lg.innerHTML = fmtLegend();
@@ -233,17 +238,22 @@ function overviewItems(id, key) {
     return { f: i.f + om, x: x + om, i: id2[n] === undefined ? undefined : id2[n] && id2[n] + om, v: i.v };
   });
 }
+function overviewSectionEnabled(key) {
+  const filter = { general: "factionAbilities", prm: "promissory", tech: "racial", brt: "breakthrough", fs: "flagship", agt: "leaders", com: "leaders", hr: "leaders", mc: "mechs" }[key];
+  return !filter || state.overviewFilters[filter];
+}
 function groupLine(id, items, source) {
   const body = items.map((item) => typeof item === "string" ? fmt(item) : `${fmt(item.text)}${expansionIcon(item.version, id)}`).join(" / ");
   const hex = state.line ? colorTextHex(id) : undefined;
   return `<li${hex ? ` style="color:${hex}"` : ""}>${nameHtml(id)}${source ? ` <span class="source-tag">[${source}]</span>` : ""}: ${body.replace(/[\s/]/g, "") ? body + "." : ""}</li>`;
 }
 function renderOverview() {
-  const order = visibleSelected();
+  const order = visibleSelected().filter((id) => !state.onlyActivePlayer || id === state.activePlayer);
   const max = maxPicks();
   let h = "";
   if (!state.selected.length) h += `<p class="empty">Select factions (or paste a TTS map string) to see their abilities.</p>`;
   else if (!visibleSelected(true).length) h += `<p class="empty">Faction information is hidden. Enable it from the faction list.</p>`;
+  else if (state.onlyActivePlayer && !order.length) h += `<p class="empty">The active player is not available in the selected factions.</p>`;
   h += `<div class="chips">` + orderedSelected(true).map((id) => {
     const f = byId[id];
     const p = (state.picks[id] || []).slice().sort((a, b) => a - b);
@@ -253,10 +263,14 @@ function renderOverview() {
     const visible = !state.hiddenFactions.includes(id);
     const toggle = `<input class="fvisibility" type="checkbox" data-fvisibility="${id}" ${visible ? "checked" : ""} aria-label="Show ${esc(f.full)} in overview and timeline" title="Show in overview and timeline">`;
     return `<div class="chipwrap ${visible ? "" : "hidden-faction"}">${toggle}<div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${textHex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
-  }).join("") + `</div><div class="ov">`;
+  }).join("") + `</div><div class="row active-player-filter"><label><input type="checkbox" id="onlyActivePlayer" ${state.onlyActivePlayer ? "checked" : ""}> Only active player${state.activePlayer ? ` (${esc(fname(byId[state.activePlayer]))})` : ""}</label></div><div class="row filter-row" aria-label="Overview categories">${[
+    ["factionAbilities", "Faction abilities"], ["unclaimedLegendary", "Unclaimed legendary planets"], ["promissory", "Promissory"], ["racial", "Racial techs and units"],
+    ["breakthrough", "Breakthrough"], ["flagship", "Flagship"], ["leaders", "Leaders"], ["mechs", "Mechs"],
+  ].map(([key, label]) => `<label><input type="checkbox" data-overview-filter="${key}" ${state.overviewFilters[key] ? "checked" : ""}> ${label}</label>`).join("")}</div><div class="ov">`;
 
-  h += renderOwnedAssets("planet", LEGENDARY, state.leg, state.planetOwners, "Legendary Planets");
-  h += renderOwnedAssets("relic", RELICS, state.relics, state.relicOwners, "Relics");
+  h += renderOwnedAssets("planet", LEGENDARY, state.leg, state.planetOwners, "Legendary Planets", order);
+  h += renderOwnedAssets("relic", RELICS, state.relics, state.relicOwners, "Relics", order);
+  h += renderUnclaimedLegendary();
 
   let lastGroup = null;
   if (state.group === "faction") {
@@ -264,6 +278,7 @@ function renderOverview() {
       const hex = state.line ? colorHex(id) : undefined;
       const lines = [];
       for (const s of OVERVIEW_SECTIONS) {
+        if (!overviewSectionEnabled(s.key)) continue;
         if (s.v && !s.v.includes(level())) continue;
         const items = overviewItems(id, s.key);
         const rows = items.map((item) => ({ text: txt(item), version: item.v }));
@@ -273,6 +288,7 @@ function renderOverview() {
     }
   }
   for (const s of state.group === "faction" ? [] : OVERVIEW_SECTIONS) {
+    if (!overviewSectionEnabled(s.key)) continue;
     if (s.v && !s.v.includes(level())) continue;
     const lines = [];
     for (const id of order) {
@@ -292,13 +308,151 @@ function renderOverview() {
   $("#overviewBody").innerHTML = h + `</div>`;
 }
 
-function renderOwnedAssets(kind, items, selected, owners, heading) {
-  const owned = visibleSelected(true).flatMap((owner) =>
+function renderOwnedAssets(kind, items, selected, owners, heading, factionIds = visibleSelected(true)) {
+  const owned = factionIds.flatMap((owner) =>
     items.filter((item) => selected.includes(item.id) && (owners[item.id] === owner) && (kind === "planet" ? legAvail(item) : relicAvail(item)))
       .map((item) => ({ text: `${item.name}: ${(kind === "planet" ? txt({ ...item, i: IDIOTIC_PLANETS[item.id] }) : txt({ ...item, i: IDIOTIC_RELICS[item.id] })).replace(/[.!?]+$/, "")}`, version: item.exp }))
       .map((item) => groupLine(owner, [item])));
   return owned.length ? `<h3>${fmt(heading)}</h3><ul>${owned.join("")}</ul>` : "";
 }
+function renderUnclaimedLegendary() {
+  if (!state.overviewFilters.unclaimedLegendary) return "";
+  const unclaimed = LEGENDARY.filter((item) => legAvail(item) && state.leg.includes(item.id) && !state.planetOwners[item.id]);
+  if (!unclaimed.length) return "";
+  const lines = unclaimed.map((item) => {
+    const text = txt({ ...item, i: IDIOTIC_PLANETS[item.id] }).replace(/[.!?]+$/, "");
+    return `<li>${esc(item.name)}: ${fmt(text)}${expansionIcon(item.exp)}</li>`;
+  });
+  return `<h3>Unclaimed Legendary Planets</h3><ul>${lines.join("")}</ul>`;
+}
+const TIA_API_KEY = "AIzaSyCtN7R96q0Xa3wasE0b6JQRyb52e0KSINY";
+const TIA_SYNC_INTERVAL = 3000;
+let tiaImportInFlight = false;
+let tiaSyncInFlight = false;
+const normalizeName = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "").replace(/^the/, "");
+function decodeFirestoreValue(value) {
+  if (!value || typeof value !== "object") return value;
+  if (value.mapValue) return decodeFirestoreFields(value.mapValue.fields);
+  if (value.arrayValue) return (value.arrayValue.values || []).map(decodeFirestoreValue);
+  if (Object.prototype.hasOwnProperty.call(value, "integerValue")) return Number(value.integerValue);
+  if (Object.prototype.hasOwnProperty.call(value, "doubleValue")) return Number(value.doubleValue);
+  if (Object.prototype.hasOwnProperty.call(value, "booleanValue")) return value.booleanValue;
+  if (Object.prototype.hasOwnProperty.call(value, "nullValue")) return null;
+  const key = Object.keys(value).find((name) => name.endsWith("Value"));
+  return key ? value[key] : value;
+}
+function decodeFirestoreFields(fields = {}) {
+  return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, decodeFirestoreValue(value)]));
+}
+function localFactionId(remoteId) {
+  const faction = FACTIONS.find((candidate) => normalizeName(candidate.full) === normalizeName(remoteId));
+  return faction && faction.id;
+}
+async function importTiaGame(silent = false) {
+  if (tiaImportInFlight) return;
+  const code = $("#tiaCode").value.trim().toUpperCase();
+  const info = $("#tiaImportInfo");
+  if (!/^[A-Z0-9]{4,12}$/.test(code)) {
+    info.textContent = "Enter a valid game code.";
+    info.className = "hint err";
+    return;
+  }
+  tiaImportInFlight = true;
+  if (!silent) {
+    info.textContent = "Loading game...";
+    info.className = "hint";
+    $("#tiaImport").disabled = true;
+  }
+  try {
+    const path = `https://firestore.googleapis.com/v1/projects/twilight-imperium-360307/databases/(default)/documents/games/${code}?key=${TIA_API_KEY}`;
+    const response = await fetch(path, { cache: "no-store" });
+    if (!response.ok) throw new Error(response.status === 404 ? "Game not found." : `TI Assistant request failed (${response.status}).`);
+    const document = await response.json();
+    state.tiaUpdateTime = document.updateTime || null;
+    const game = decodeFirestoreFields(document.fields);
+    const remoteFactions = Object.entries(game.factions || {}).map(([key, faction]) => ({ remoteId: faction.id || key, faction, localId: localFactionId(faction.id || key) }));
+    const selected = remoteFactions.filter((entry) => entry.localId).map((entry) => entry.localId);
+    const unsupported = remoteFactions.filter((entry) => !entry.localId).map((entry) => entry.remoteId);
+    const expansions = (game.options && game.options.expansions || []).map(normalizeName);
+    state.te = expansions.some((name) => name.includes("thundersedge")) || remoteFactions.some((entry) => entry.localId && byId[entry.localId].exp === "te");
+    state.pok = state.te || expansions.some((name) => name === "pok" || name.includes("prophecyofkings")) || remoteFactions.some((entry) => entry.localId && byId[entry.localId].exp !== "base");
+    state.selected = [...new Set(selected)].slice(0, 8);
+    state.colors = {};
+    for (const entry of remoteFactions) {
+      const color = String(entry.faction.color || "").toLowerCase();
+      if (entry.localId && PLAYER_COLORS.some((item) => item.id === color)) state.colors[entry.localId] = color;
+    }
+    state.picks = {};
+    for (const [cardName, card] of Object.entries(game.strategycards || {})) {
+      const strategy = STRATEGY_CARDS.find((item) => normalizeName(item.name) === normalizeName(cardName));
+      const faction = localFactionId(card.faction);
+      if (strategy && faction && state.selected.includes(faction)) (state.picks[faction] ||= []).push(strategy.n);
+    }
+    state.activePlayer = localFactionId(game.state && game.state.activeplayer);
+    state.planetOwners = {};
+    state.leg = [];
+    for (const [planetName, planet] of Object.entries(game.planets || {})) {
+      const legendary = LEGENDARY.find((item) => normalizeName(item.name) === normalizeName(planetName));
+      if (!legendary) continue;
+      if (!state.leg.includes(legendary.id)) state.leg.push(legendary.id);
+      const owner = localFactionId(planet.owner);
+      if (owner) state.planetOwners[legendary.id] = owner;
+    }
+    state.relics = [];
+    state.relicOwners = {};
+    for (const [relicName, relic] of Object.entries(game.relics || {})) {
+      const localRelic = RELICS.find((item) => normalizeName(item.name) === normalizeName(relicName));
+      if (!localRelic) continue;
+      state.relics.push(localRelic.id);
+      const owner = localFactionId(relic.owner || relic.faction);
+      if (owner) state.relicOwners[localRelic.id] = owner;
+    }
+    state.tts = game.options && game.options["map-string"] || "";
+    const mapLegendary = parseTts();
+    if (mapLegendary.ok) state.leg = [...new Set([...state.leg, ...mapLegendary.leg])];
+    state.tiaCode = code;
+    state.importedFromTia = true;
+    if (!silent) state.hiddenFactions = [];
+    state.assetPicker = null;
+    renderAll();
+    info.textContent = silent
+      ? `Updated from TI Assistant at ${new Date().toLocaleTimeString()}.`
+      : `Imported ${state.selected.length} supported faction(s). Auto-sync checks every ${TIA_SYNC_INTERVAL / 1000} seconds.${unsupported.length ? ` Not available locally: ${unsupported.join(", ")}.` : ""}`;
+    info.className = unsupported.length ? "hint" : "hint ok";
+  } catch (error) {
+    if (!silent) {
+      info.textContent = error.message || "Could not import this game.";
+      info.className = "hint err";
+    }
+  } finally {
+    tiaImportInFlight = false;
+    if (!silent) $("#tiaImport").disabled = false;
+  }
+}
+
+async function checkTiaChanges() {
+  if (!state.importedFromTia || !state.tiaCode || document.hidden || tiaSyncInFlight || tiaImportInFlight) return;
+  tiaSyncInFlight = true;
+  const code = state.tiaCode;
+  try {
+    const path = `https://firestore.googleapis.com/v1/projects/twilight-imperium-360307/databases/(default)/documents/games/${code}?mask.fieldPaths=sequenceNum&key=${TIA_API_KEY}`;
+    const response = await fetch(path, { cache: "no-store" });
+    if (!response.ok) throw new Error(`TI Assistant sync check failed (${response.status}).`);
+    const document = await response.json();
+    if (state.importedFromTia && state.tiaCode === code && document.updateTime && document.updateTime !== state.tiaUpdateTime) {
+      await importTiaGame(true);
+    }
+  } catch {
+    if (state.importedFromTia && state.tiaCode === code) {
+      const info = $("#tiaImportInfo");
+      info.textContent = "Sync unavailable; will retry automatically.";
+      info.className = "hint err";
+    }
+  } finally {
+    tiaSyncInFlight = false;
+  }
+}
+
 function picker(id, max) {
   const mine = state.picks[id] || [];
   const taken = new Set(Object.entries(state.picks).filter(([k]) => k !== id).flatMap(([, v]) => v));
@@ -366,8 +520,20 @@ $("#acrToggle").addEventListener("change", (e) => { state.acr = e.target.checked
 $("#shortNames").addEventListener("change", (e) => { state.short = e.target.checked; renderAll(); });
 document.querySelectorAll('input[name="desc"]').forEach((r) =>
   r.addEventListener("change", (e) => { state.desc = e.target.value; renderAll(); }));
-$("#tts").addEventListener("change", (e) => { state.tts = e.target.value; renderAll(); });
-$("#tts").addEventListener("input", (e) => { state.tts = e.target.value; if (parseTts().ok || !state.tts.trim()) renderAll(); else applyTts(); });
+$("#tts").addEventListener("change", (e) => { state.tts = e.target.value; state.importedFromTia = false; state.tiaUpdateTime = null; state.activePlayer = null; state.tiaCode = ""; renderAll(); });
+$("#tts").addEventListener("input", (e) => { state.tts = e.target.value; state.importedFromTia = false; state.tiaUpdateTime = null; state.activePlayer = null; state.tiaCode = ""; if (parseTts().ok || !state.tts.trim()) renderAll(); else applyTts(); });
+$("#tiaCode").addEventListener("input", (e) => {
+  const changedCode = e.target.value.trim().toUpperCase() !== state.tiaCode;
+  state.tiaCode = e.target.value;
+  if (state.importedFromTia && changedCode) {
+    state.importedFromTia = false;
+    state.tiaUpdateTime = null;
+    $("#tiaImportInfo").textContent = "Import the new code to follow another game.";
+    $("#tiaImportInfo").className = "hint";
+  }
+  save();
+});
+$("#tiaImport").addEventListener("click", () => importTiaGame());
 $("#setupBody").addEventListener("click", (e) => {
   const toggle = e.target.closest("[data-collapse]");
   if (toggle) {
@@ -405,7 +571,9 @@ $("#setupBody").addEventListener("click", (e) => {
   renderAll();
 });
 $("#clearSel").addEventListener("click", () => {
-  state.selected = []; state.picks = {}; state.colors = {}; state.hiddenFactions = []; state.leg = []; state.relics = []; state.planetOwners = {}; state.relicOwners = {}; pickerFor = null; state.factionsCollapsed = false; renderAll();
+  state.selected = []; state.picks = {}; state.colors = {}; state.hiddenFactions = []; state.leg = []; state.relics = []; state.planetOwners = {}; state.relicOwners = {}; state.activePlayer = null;
+  if (state.importedFromTia) { state.importedFromTia = false; state.tiaUpdateTime = null; state.tiaCode = ""; state.tts = ""; }
+  pickerFor = null; state.factionsCollapsed = false; renderAll();
 });
 $("#clearStrategyCards").addEventListener("click", () => {
   state.picks = {};
@@ -425,6 +593,19 @@ $("#factionGrid").addEventListener("click", (e) => {
   renderAll();
 });
 $("#overviewBody").addEventListener("click", (e) => {
+  const overviewFilter = e.target.closest("[data-overview-filter]");
+  if (overviewFilter) {
+    state.overviewFilters[overviewFilter.dataset.overviewFilter] = overviewFilter.checked;
+    renderAll();
+    return;
+  }
+  const activePlayer = e.target.closest("#onlyActivePlayer");
+  if (activePlayer) {
+    state.onlyActivePlayer = activePlayer.checked;
+    renderOverview();
+    save();
+    return;
+  }
   const visibility = e.target.closest(".fvisibility");
   if (visibility) {
     const id = visibility.dataset.fvisibility;
@@ -500,4 +681,10 @@ pixDialog.addEventListener("click", (e) => { if (e.target === pixDialog) pixDial
 applyTts();
 dropUnavailable();
 renderAll();
+if (state.importedFromTia && state.tiaCode) {
+  $("#tiaImportInfo").textContent = `Watching TI Assistant for changes; checks every ${TIA_SYNC_INTERVAL / 1000} seconds.`;
+  $("#tiaImportInfo").className = "hint ok";
+  checkTiaChanges();
+}
+setInterval(checkTiaChanges, TIA_SYNC_INTERVAL);
 })();
