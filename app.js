@@ -766,9 +766,11 @@ function hideCardTip() { clearTimeout(cardTipTimer); cardTip.hidden = true; }
 function showCardTip(row) {
   if (!row.isConnected) return;
   const card = STRATEGY_CARDS[+row.dataset.n - 1];
-  const a = { pri: card.pri, sec: card.sec, ...(state.pok || state.te ? card.pok : null), ...(state.te ? card.te : null) };
+  const a = { pri: card.pri, sec: card.sec, ipri: card.ipri, isec: card.isec, ...(state.pok || state.te ? card.pok : null), ...(state.te ? card.te : null) };
+  const idiotic = state.desc === "idiotic";
+  const pri = idiotic ? a.ipri || a.pri : a.pri, sec = idiotic ? a.isec || a.sec : a.sec;
   cardTip.style.setProperty("--sc", card.color);
-  cardTip.innerHTML = `<div class="card-tip-h"><b>${card.n}</b> ${esc(card.name)}</div><div class="card-tip-l">Primary</div><p>${esc(a.pri)}</p><div class="card-tip-l">Secondary</div><p>${esc(a.sec)}</p>`;
+  cardTip.innerHTML = `<div class="card-tip-h"><b>${card.n}</b> ${esc(card.name)}</div><div class="card-tip-l">Primary</div><p>${esc(pri)}</p><div class="card-tip-l">Secondary</div><p>${esc(sec)}</p>`;
   cardTip.hidden = false;
   const r = row.getBoundingClientRect(), t = cardTip.getBoundingClientRect();
   const left = r.right + 10 + t.width <= innerWidth ? r.right + 10 : Math.max(8, r.left - t.width - 10);
