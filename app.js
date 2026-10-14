@@ -228,8 +228,9 @@ function renderSetupModeControl() {
 function renderSetup() {
   $("#expPok").checked = state.pok;
   $("#expTe").checked = state.te;
-  $("#expPok").disabled = !!tts.active && tts.pok;
-  $("#expTe").disabled = !!tts.active && tts.te;
+  const tiaMode = state.entryMode === "ti-assistant";
+  $("#expPok").disabled = tiaMode || (!!tts.active && tts.pok);
+  $("#expTe").disabled = tiaMode || (!!tts.active && tts.te);
   $("#acrToggle").checked = state.acr;
   $("#lineColor").checked = state.line;
   document.querySelectorAll('input[name="group"]').forEach((r) => (r.checked = r.value === state.group));
@@ -244,14 +245,14 @@ function renderSetup() {
   $("[data-collapse='legendary']").setAttribute("aria-expanded", String(!state.legCollapsed));
   $("#legList").innerHTML = opts.length
     ? opts.map((l) => assetTile("planet", l, state.leg, state.planetOwners)).join("")
-    : `<span class="hint">${restrictLegendary ? "No legendary planets in this game." : "Enable an expansion to choose legendary planets."}</span>`;
+    : `<span class="hint">${restrictLegendary ? "No legendary planets in this game." : tiaMode ? "Import a game to see its legendary planets." : "Enable an expansion to choose legendary planets."}</span>`;
   const restrictRelics = state.entryMode === "ti-assistant" && state.importedFromTia;
   const relics = RELICS.filter((relic) => relicAvail(relic) && (!restrictRelics || state.relics.includes(relic.id)));
   $("#relicSel").classList.toggle("closed", state.relicCollapsed);
   $("[data-collapse='relics']").setAttribute("aria-expanded", String(!state.relicCollapsed));
   $("#relicList").innerHTML = relics.length
     ? relics.map((r) => assetTile("relic", r, state.relics, state.relicOwners)).join("")
-    : `<span class="hint">${restrictRelics ? "No relics in this game." : "Enable an expansion to choose relics."}</span>`;
+    : `<span class="hint">${restrictRelics ? "No relics in this game." : tiaMode ? "Import a game to see its relics." : "Enable an expansion to choose relics."}</span>`;
 }
 
 function assetTile(kind, item, selected, owners) {
@@ -441,9 +442,9 @@ function localLegendaryId(remoteName) {
 }
 async function importTiaGame(silent = false) {
   if (tiaImportInFlight) return;
-  const code = $("#tiaCode").value.trim().toUpperCase();
+  const code = $("#tiaCode").value.trim();
   const info = $("#tiaImportInfo");
-  if (!/^[A-Z0-9]{4,12}$/.test(code)) {
+  if (!/^[A-Za-z0-9]{4,12}$/.test(code)) {
     info.textContent = "Enter a valid game code.";
     info.className = "hint err";
     return;
@@ -457,7 +458,7 @@ async function importTiaGame(silent = false) {
   try {
     const path = `https://firestore.googleapis.com/v1/projects/twilight-imperium-360307/databases/(default)/documents/games/${code}?key=${TIA_API_KEY}`;
     const response = await fetch(path, { cache: "no-store" });
-    if (!response.ok) throw new Error(response.status === 404 ? "Game not found." : `TI Assistant request failed (${response.status}).`);
+    if (!response.ok) throw new Error(response.status === 404 ? "Game not found. Type the game code exactly as it appears in the TI Assistant URL." : `TI Assistant request failed (${response.status}).`);
     const document = await response.json();
     state.tiaUpdateTime = document.updateTime || null;
     const game = decodeFirestoreFields(document.fields);
@@ -626,7 +627,7 @@ $("#setupModeControl").addEventListener("input", (e) => {
     return;
   }
   if (e.target.id === "tiaCode") {
-    const changedCode = e.target.value.trim().toUpperCase() !== state.tiaCode;
+    const changedCode = e.target.value.trim() !== state.tiaCode;
     state.tiaCode = e.target.value;
     if (state.importedFromTia && changedCode) {
       state.importedFromTia = false;
