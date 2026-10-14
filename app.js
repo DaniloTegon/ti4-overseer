@@ -782,11 +782,6 @@ $("#timelineTree").addEventListener("contextmenu", (e) => {
 $("#expandAll").addEventListener("click", () => { state.openIds = allIds.slice(); renderTimeline(); save(); });
 $("#collapseAll").addEventListener("click", () => { state.openIds = []; renderTimeline(); save(); });
 
-const pixDialog = $("#pixDialog");
-$("#donateBtn").addEventListener("click", () => pixDialog.showModal());
-$("#pixClose").addEventListener("click", () => pixDialog.close());
-pixDialog.addEventListener("click", (e) => { if (e.target === pixDialog) pixDialog.close(); });
-
 const hasChosenEntryMode = state.entryMode === "manual" || state.entryMode === "tts" || state.entryMode === "ti-assistant";
 $("#modeChooser").hidden = hasChosenEntryMode;
 $("#assistantApp").hidden = !hasChosenEntryMode;
