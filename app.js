@@ -330,6 +330,11 @@ function groupLine(id, items, source) {
   const hex = state.line ? colorTextHex(id) : undefined;
   return `<li${hex ? ` style="color:${hex}"` : ""}>${nameHtml(id)}${source ? ` <span class="source-tag">[${source}]</span>` : ""}: ${body.replace(/[\s/]/g, "") ? body + "." : ""}</li>`;
 }
+function pendingNotice() {
+  const pending = state.selected.filter((id) => !state.hiddenFactions.includes(id) && !ready(id));
+  if (!pending.length) return "";
+  return `<div class="notice" role="status"><b>Choose a strategy card and a color to see the faction information:</b> ${pending.map((id) => esc(fname(byId[id]))).join(", ")}.</div>`;
+}
 function renderOverview() {
   const order = visibleSelected().filter((id) => !state.onlyActivePlayer || id === state.activePlayer);
   const max = maxPicks();
@@ -345,8 +350,8 @@ function renderOverview() {
     const textHex = colorTextHex(id);
     const visible = !state.hiddenFactions.includes(id);
     const toggle = `<input class="fvisibility" type="checkbox" data-fvisibility="${id}" ${visible ? "checked" : ""} aria-label="Show ${esc(f.full)} in overview and timeline" title="Show in overview and timeline">`;
-    return `<div class="chipwrap ${visible ? "" : "hidden-faction"}">${toggle}<div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${textHex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
-  }).join("") + `</div><div class="row active-player-filter"><label><input type="checkbox" id="onlyActivePlayer" ${state.onlyActivePlayer ? "checked" : ""}> Only active player${state.activePlayer ? ` (${esc(fname(byId[state.activePlayer]))})` : ""}</label></div><div class="row filter-row" aria-label="Overview categories">${[
+    return `<div class="chipwrap ${visible ? "" : "hidden-faction"}">${toggle}<div class="chip ${pickerFor === id ? "open" : ""}" data-id="${id}" ${hex ? `style="border-color:${hex}"` : ""}>${fimg(f)}<div><div style="color:${textHex || "inherit"}">${esc(fname(f))}</div><div class="cards">${ini}${p.map((n) => `<span class="sc" style="--sc:${STRATEGY_CARDS[n - 1].color}">${n}</span>`).join("")}</div></div></div>${pickerFor === id ? picker(id, max) : ""}</div>`;
+  }).join("") + `</div>${pendingNotice()}<div class="row active-player-filter"><label><input type="checkbox" id="onlyActivePlayer" ${state.onlyActivePlayer ? "checked" : ""}> Only active player${state.activePlayer ? ` (${esc(fname(byId[state.activePlayer]))})` : ""}</label></div><div class="row filter-row" aria-label="Overview categories">${[
     ["factionAbilities", "Faction abilities"], ["unclaimedLegendary", "Unclaimed legendary planets"], ["promissory", "Promissory"], ["racial", "Racial techs and units"],
     ["breakthrough", "Breakthrough"], ["flagship", "Flagship"], ["leaders", "Leaders"], ["mechs", "Mechs"],
   ].map(([key, label]) => `<label><input type="checkbox" data-overview-filter="${key}" ${state.overviewFilters[key] ? "checked" : ""}> ${label}</label>`).join("")}</div><div class="ov">`;
@@ -384,8 +389,6 @@ function renderOverview() {
     h += s.group ? `<h4>${fmt(s.title)}</h4>` : `<h3>${fmt(s.title)}</h3>`;
     h += `<ul>${lines.join("")}</ul>`;
   }
-  const pending = state.selected.filter((id) => !state.hiddenFactions.includes(id) && !ready(id));
-  if (pending.length) h += `<p class="empty">Pick a color and at least 1 strategy card to reveal: ${pending.map((id) => esc(fname(byId[id]))).join(", ")}.</p>`;
   const missing = order.filter((id) => !OVERVIEW[id]);
   if (missing.length) h += `<p class="empty">Details not yet available for: ${missing.map((id) => esc(fname(byId[id]))).join(", ")}.</p>`;
   $("#overviewBody").innerHTML = h + `</div>`;
@@ -551,7 +554,7 @@ function picker(id, max) {
     STRATEGY_CARDS.map((c) => {
       const isMine = mine.includes(c.n);
       const blocked = taken.has(c.n) || (!isMine && mine.length >= max);
-      return `<div class="pick ${isMine ? "mine" : ""} ${blocked ? "taken" : ""}" data-n="${c.n}" data-f="${id}"><span class="n">${c.n}</span>${c.name}</div>`;
+      return `<div class="pick ${isMine ? "mine" : ""} ${blocked ? "taken" : ""}" data-n="${c.n}" data-f="${id}" style="--sc:${c.color}"><span class="n">${c.n}</span>${c.name}</div>`;
     }).join("") +
     `<div class="hd" style="margin-top:8px">Color</div><div class="sws">` +
     PLAYER_COLORS.map((c) => `<span class="sw ${state.colors[id] === c.id ? "on" : ""} ${usedColors.has(c.id) ? "taken" : ""}" data-c="${c.id}" data-f="${id}" title="${c.name}" style="background:${c.hex}"></span>`).join("") +
@@ -566,7 +569,8 @@ function renderNode(n, depth, path, order) {
   const lines = [];
   for (const id of order) {
     const d = FACTION_DATA[id];
-    const items = d && n.slot ? (d.timeline[n.slot] || []).filter(vis).map((i) => ({ text: i.x, version: i.v })) : [];
+    const slots = d && (d.timeline || d);
+    const items = slots && n.slot ? (slots[n.slot] || []).filter(vis).map((i) => ({ text: i.x, version: i.v })) : [];
     if (items.length) lines.push(groupLine(id, items));
   }
   const kids = (n.c || []).map((c, i) => renderNode(c, depth + 1, `${path}.${i}`, order)).join("");
@@ -751,6 +755,35 @@ document.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   if (pickerFor && !e.target.closest(".chipwrap")) { pickerFor = null; renderOverview(); }
 });
+
+// Strategy card tooltip: appears only after the pointer rests on a row.
+const cardTip = document.createElement("div");
+cardTip.className = "card-tip";
+cardTip.hidden = true;
+document.body.appendChild(cardTip);
+let cardTipTimer = null;
+function hideCardTip() { clearTimeout(cardTipTimer); cardTip.hidden = true; }
+function showCardTip(row) {
+  if (!row.isConnected) return;
+  const card = STRATEGY_CARDS[+row.dataset.n - 1];
+  const a = { pri: card.pri, sec: card.sec, ...(state.pok || state.te ? card.pok : null), ...(state.te ? card.te : null) };
+  cardTip.style.setProperty("--sc", card.color);
+  cardTip.innerHTML = `<div class="card-tip-h"><b>${card.n}</b> ${esc(card.name)}</div><div class="card-tip-l">Primary</div><p>${esc(a.pri)}</p><div class="card-tip-l">Secondary</div><p>${esc(a.sec)}</p>`;
+  cardTip.hidden = false;
+  const r = row.getBoundingClientRect(), t = cardTip.getBoundingClientRect();
+  const left = r.right + 10 + t.width <= innerWidth ? r.right + 10 : Math.max(8, r.left - t.width - 10);
+  const top = Math.min(Math.max(8, r.top + r.height / 2 - t.height / 2), innerHeight - t.height - 8);
+  cardTip.style.left = `${left}px`;
+  cardTip.style.top = `${top}px`;
+}
+document.addEventListener("mousemove", (e) => {
+  const row = e.target.closest && e.target.closest(".pick");
+  hideCardTip();
+  if (row) cardTipTimer = setTimeout(() => showCardTip(row), 450);
+});
+document.addEventListener("mouseleave", hideCardTip);
+document.addEventListener("click", hideCardTip, true);
+document.addEventListener("scroll", hideCardTip, true);
 $("#timelineTree").addEventListener("toggle", (e) => {
   const id = e.target.dataset && e.target.dataset.id;
   if (!id) return;

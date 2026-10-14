@@ -15,10 +15,39 @@ const ACRONYMS = [
 ];
 const LEGEND_TEXT = { ACT: "Activates", AST: "Asteroids", PRI: "Primary", PRM: "Promissory", PSS: "Pass/Passing", VT: "Vote/Voting" };
 
+// color = card accent; pri/sec = ability text, with pok/te overriding the base wording for that expansion level.
 const STRATEGY_CARDS = [
-  { n: 1, name: "Leadership" }, { n: 2, name: "Diplomacy" }, { n: 3, name: "Politics" },
-  { n: 4, name: "Construction" }, { n: 5, name: "Trade" }, { n: 6, name: "Warfare" },
-  { n: 7, name: "Technology" }, { n: 8, name: "Imperial" },
+  { n: 1, name: "Leadership", color: "#ee5a5a",
+    pri: "Gain 3 command tokens. Then, spend any amount of influence to gain 1 command token for every 3 influence spent.",
+    sec: "Spend any amount of influence to gain 1 command token for every 3 influence spent. You do not spend a command token to resolve this." },
+  { n: 2, name: "Diplomacy", color: "#fb923c",
+    pri: "Choose 1 system other than the Mecatol Rex system that contains a planet you control; each other player places a command token from their reinforcements in the chosen system. Then, ready each exhausted planet you control in that system.",
+    sec: "Spend 1 token from your strategy pool to ready up to 2 exhausted planets.",
+    pok: { pri: "Choose 1 system other than the Mecatol Rex system that contains a planet you control; each other player places a command token from their reinforcements in the chosen system. Then, ready up to 2 exhausted planets you control.",
+      sec: "Spend 1 token from your strategy pool to ready up to 2 exhausted planets you control." } },
+  { n: 3, name: "Politics", color: "#f2d544",
+    pri: "Choose a player other than the speaker; that player gains the speaker token. Draw 2 action cards. Look at the top 2 cards of the agenda deck and place each on the top or bottom of the deck in any order.",
+    sec: "Spend 1 token from your strategy pool to draw 2 action cards." },
+  { n: 4, name: "Construction", color: "#3fb55a",
+    pri: "Place 1 PDS or 1 space dock on a planet you control. Then, place 1 PDS on a planet you control.",
+    sec: "Place 1 token from your strategy pool in any system; you may place either 1 space dock or 1 PDS on a planet you control in that system.",
+    pok: { sec: "Spend 1 token from your strategy pool and place it in any system; you may place either 1 space dock or 1 PDS on a planet you control in that system." },
+    te: { pri: "Either place 1 structure on a planet you control, or use the PRODUCTION ability of 1 of your space docks. Then, place 1 structure on a planet you control.",
+      sec: "Spend 1 token from your strategy pool to place 1 structure on a planet you control." } },
+  { n: 5, name: "Trade", color: "#2fc5b5",
+    pri: "Gain 3 trade goods. Replenish your commodities. Choose any number of other players; they use the secondary ability of this card without spending a command token.",
+    sec: "Spend 1 token from your strategy pool to replenish your commodities." },
+  { n: 6, name: "Warfare", color: "#4f8cff",
+    pri: "Remove 1 of your command tokens from the game board; then, gain 1 command token. Then, redistribute any number of the command tokens on your command sheet.",
+    sec: "Spend 1 token from your strategy pool to use the PRODUCTION ability of 1 of your space docks in your home system.",
+    te: { pri: "Perform a tactical action in any system without placing a command token, even if the system already has your command token in it; that system still counts as being activated. You may redistribute your command tokens before and after this action.",
+      sec: "Spend 1 token from your strategy pool to use the PRODUCTION abilities of units in your home system." } },
+  { n: 7, name: "Technology", color: "#b26cf0",
+    pri: "Research 1 technology. Then, spend 6 resources to research 1 technology.",
+    sec: "Spend 1 token from your strategy pool and 4 resources to research 1 technology." },
+  { n: 8, name: "Imperial", color: "#f58cc0",
+    pri: "Immediately score 1 public objective if you fulfill its requirements. Then, gain 1 victory point if you control Mecatol Rex; otherwise, draw 1 secret objective.",
+    sec: "Spend 1 token from your strategy pool to draw 1 secret objective." },
 ];
 
 const PLAYER_COLORS = [
